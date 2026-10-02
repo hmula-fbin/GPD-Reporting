@@ -1,0 +1,14 @@
+{
+  "_note": "Development site. Today this is the existing sandbox (gpdsbx). Change sitePath if you create a dedicated dev site.",
+  "env": "dev",
+  "label": "Development",
+  "sitePath": "/sites/gpdsbx",
+  "showEnvBadge": true,
+  "tenantUrl": "https://fbinportal.sharepoint.com",
+  "pagesLibrary": "Shared Documents",
+  "dataLibrary": "Report Files",
+  "dataFileName": "Pipeline Data.xlsx",
+  "reloadMinutes": 60,
+  "reviewMonths": 30,
+  "pnpClientId": ""
+}

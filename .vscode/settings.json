@@ -1,0 +1,9 @@
+{
+  "files.exclude": { "node_modules": true, "test-results": true },
+  "search.exclude": { "src/vendor/**": true, "dist/**": true, "backups/**": true },
+  "files.associations": { "*.aspx": "html" },
+  "editor.formatOnSave": false,
+  "powershell.codeFormatting.preset": "OTBS",
+  "playwright.reuseBrowser": true,
+  "terminal.integrated.defaultProfile.windows": "PowerShell"
+}

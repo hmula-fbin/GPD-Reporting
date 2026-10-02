@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Innovation &amp; CI Portfolio Scorecard</title>
+<!-- @js vendor/xlsx.full.min.js -->
+<meta name="gpd-build" content="{{VERSION}} {{ENV}} {{BUILD_TIME}}">
+<!-- @css pages/scorecard/scorecard.css pages/scorecard/scorecard-layout.css pages/scorecard/scorecard-colours.css pages/scorecard/drill.css shared/shell.css shared/ask.css -->
+</head>
+<body data-page="score">
+
+<!-- @include partials/appbar.html crumb="Portfolio Score Card" -->
+<header class="masthead">
+  <div class="wrap">
+    <div class="mast-title">
+      <h1>Innovation &amp; CI portfolio scorecard</h1>
+      <p id="subline">Live portfolio figures</p>
+    </div>
+    <div class="mast-right">
+      <button class="btn" id="dlAllBtn" type="button" title="Download every project to Excel"><svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg><span>Download all projects</span></button>
+      <button class="btn refresh" id="reloadBtn" title="Get the latest figures"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 8.2a5.4 5.4 0 1 1-1.7-4.1"/><path d="M13.6 2.4v3.2h-3.2"/></svg><span>Refresh now</span></button>
+    </div>
+  </div>
+  <div class="wrap tabsrow" id="tabsrow" hidden>
+    <nav class="tabs" role="tablist" aria-label="Dashboard views">
+      <button class="tab on" id="tab_score" role="tab" aria-selected="true">Scorecard</button>
+      <button class="tab" id="tab_trend" role="tab" aria-selected="false">Month-over-month trend<span class="tabcount" id="tabTrendN"></span></button>
+    </nav>
+  </div>
+</header>
+
+<div class="layout">
+<div class="rail" id="rail">
+  <div class="wrap" id="railInner">
+    <div class="railhead"><span>Filters</span></div>
+    <div id="filterFields" style="display:contents"></div>
+    <div class="fld"><label for="f_thr">Review &gt; mo</label><input id="f_thr" type="number" min="1" max="120" step="1" value="{{REVIEW_MONTHS}}"></div>
+    <button class="btn sm" id="resetBtn" title="Clear all filters"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.6h6.4a3.4 3.4 0 0 1 0 6.8H6"/><path d="M5.6 3 3 5.6l2.6 2.6"/></svg><span>Reset</span></button>
+    <div class="inview"><b id="inviewN">&#x2014;</b><span>projects in view</span></div>
+    <div class="chips" id="filterChips"></div>
+  </div>
+</div>
+
+<main class="wrap" id="main" tabindex="-1">
+  <div class="warnbar" id="warnbar" hidden></div>
+  <div id="emptyState" class="empty" style="margin-top:30px">
+    <b id="emptyTitle">Loading the latest portfolio&#x2026;</b>
+    <span id="emptyMsg">This takes a second or two.</span>
+  </div>
+  <div id="content" hidden></div>
+</main>
+
+</div>
+<footer class="wrap" id="foot" hidden></footer>
+
+<!-- @include pages/scorecard/drill-panel.html -->
+<!-- @include partials/drawer.html -->
+<!-- @include partials/ask.html -->
+
+<!-- @config -->
+<!-- @js pages/scorecard/scorecard.js -->
+<!-- @js pages/scorecard/bucket-reference.js -->
+<!-- @js pages/scorecard/drill.js -->
+<!-- @js pages/scorecard/ask-data.js -->
+<!-- @js shared/nav.js -->
+<!-- @js shared/ask.js -->
+</body>
+</html>

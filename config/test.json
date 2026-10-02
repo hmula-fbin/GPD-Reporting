@@ -1,0 +1,14 @@
+{
+  "_note": "Test / UAT site. Replace CHANGE-ME-gpd-test with the real site name before the first test deploy.",
+  "env": "test",
+  "label": "Test",
+  "sitePath": "/sites/CHANGE-ME-gpd-test",
+  "showEnvBadge": true,
+  "tenantUrl": "https://fbinportal.sharepoint.com",
+  "pagesLibrary": "Shared Documents",
+  "dataLibrary": "Report Files",
+  "dataFileName": "Pipeline Data.xlsx",
+  "reloadMinutes": 60,
+  "reviewMonths": 30,
+  "pnpClientId": ""
+}

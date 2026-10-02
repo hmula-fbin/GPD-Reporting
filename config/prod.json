@@ -1,0 +1,14 @@
+{
+  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Deploys here need a clean git tree, a version tag and typed confirmation.",
+  "env": "prod",
+  "label": "Production",
+  "sitePath": "/sites/CHANGE-ME-gpd",
+  "showEnvBadge": false,
+  "tenantUrl": "https://fbinportal.sharepoint.com",
+  "pagesLibrary": "Shared Documents",
+  "dataLibrary": "Report Files",
+  "dataFileName": "Pipeline Data.xlsx",
+  "reloadMinutes": 60,
+  "reviewMonths": 30,
+  "pnpClientId": ""
+}

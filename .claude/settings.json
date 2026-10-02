@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node build/build.mjs:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Bash(pwsh*Deploy-Portfolio.ps1*prod*)",
+      "Bash(*Deploy-Portfolio.ps1*-Env prod*)",
+      "Bash(git push:*)",
+      "Read(data/**)",
+      "Edit(dist/**)",
+      "Edit(src/vendor/**)"
+    ]
+  }
+}

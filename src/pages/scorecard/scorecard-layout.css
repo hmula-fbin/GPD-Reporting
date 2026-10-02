@@ -1,0 +1,22 @@
+/* ===================== Left filter panel ===================== */
+.railhead{display:none}
+@media (min-width:1100px){
+  .masthead .wrap,footer.wrap,.appbar-in{max-width:1640px}
+  .layout{display:grid;grid-template-columns:272px minmax(0,1fr);max-width:1640px;margin:0 auto;align-items:start}
+  .rail{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;border-bottom:0;border-right:1px solid var(--rule);
+    background:var(--panel);backdrop-filter:none;min-height:calc(100vh - 160px)}
+  .rail .wrap{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 18px 28px;max-width:none}
+  .railhead{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+    padding-bottom:10px;border-bottom:1px solid var(--rule-2)}
+  .rail .fld{width:100%}
+  .rail .fld label{font-size:11px;font-weight:600;color:var(--ink-2)}
+  .rail .msbtn{max-width:none;width:100%;min-width:0;padding:7px 9px;font-size:12.5px}
+  .rail .mspanel{left:0;right:0;min-width:0;max-width:none}
+  .rail .fld input#f_thr{width:100%;max-width:none;padding:7px 9px}
+  .rail #resetBtn{align-self:flex-start}
+  .rail .inview{order:-1;margin:0;padding:10px 12px;border-radius:9px;background:var(--panel-2);border:1px solid var(--rule-2)}
+  .rail .chips{order:0}
+  .rail .chips:not(:empty){padding-top:0}
+  .rail .chip-f{max-width:100%}
+  .layout > main.wrap{max-width:none;margin:0;padding:0 28px 72px}
+}

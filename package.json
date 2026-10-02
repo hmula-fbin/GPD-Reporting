@@ -1,0 +1,26 @@
+{
+  "name": "gpd-portfolio-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GPD Portfolio Hub - SharePoint Online pages (Home + Innovation & CI Portfolio Scorecard)",
+  "type": "module",
+  "scripts": {
+    "build": "node build/build.mjs --env dev",
+    "build:dev": "node build/build.mjs --env dev",
+    "build:test": "node build/build.mjs --env test",
+    "build:prod": "node build/build.mjs --env prod",
+    "build:all": "node build/build.mjs --env all",
+    "preview": "node build/build.mjs --env dev && node tools/serve.mjs --env dev",
+    "fixture": "node tools/make-fixture.mjs",
+    "test": "node build/build.mjs --env dev && playwright test",
+    "test:ui": "node build/build.mjs --env dev && playwright test --ui",
+    "deploy:dev": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env dev",
+    "deploy:test": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "_note": "SG Project Type -> Project Bucket, Platform, Target execution (months). Edit here, rebuild, redeploy.",
+  "rows": [
+    {
+      "sgProjectType": "Developer Custom Request",
+      "bucket": "Grow the Core",
+      "platform": "Off",
+      "targetMonths": 12
+    },
+    {
+      "sgProjectType": "Distribution Expansion.Across Region/OpCo",
+      "bucket": "Create & Transform",
+      "platform": "Off",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "Distribution Expansion.Within Region/OpCo",
+      "bucket": "Refresh & Sustain",
+      "platform": "On",
+      "targetMonths": 12
+    },
+    {
+      "sgProjectType": "Improvement.New Platform",
+      "bucket": "CI",
+      "platform": "New",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "Improvement.Off Platform",
+      "bucket": "CI",
+      "platform": "Off",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "Improvement.On Platform",
+      "bucket": "CI",
+      "platform": "On",
+      "targetMonths": 12
+    },
+    {
+      "sgProjectType": "New to FBIN.New Platform",
+      "bucket": "Create & Transform",
+      "platform": "New",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "New to FBIN.Off Platform",
+      "bucket": "Create & Transform",
+      "platform": "Off",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "New to World.New Platform",
+      "bucket": "Create & Transform",
+      "platform": "New",
+      "targetMonths": 24
+    },
+    {
+      "sgProjectType": "New to World.On Platform",
+      "bucket": "Create & Transform",
+      "platform": "On",
+      "targetMonths": 12
+    },
+    {
+      "sgProjectType": "Product Expansion/Refresh.New Platform",
+      "bucket": "Grow the Core",
+      "platform": "New",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "Product Expansion/Refresh.Off Platform",
+      "bucket": "Grow the Core",
+      "platform": "Off",
+      "targetMonths": 20
+    },
+    {
+      "sgProjectType": "Product Expansion/Refresh.On Platform",
+      "bucket": "Refresh & Sustain",
+      "platform": "On",
+      "targetMonths": 12
+    },
+    {
+      "sgProjectType": "Promotions/Prepacks",
+      "bucket": "Refresh & Sustain",
+      "platform": "Off",
+      "targetMonths": 8
+    },
+    {
+      "sgProjectType": "Technology Development",
+      "bucket": "Create & Transform",
+      "platform": "Off",
+      "targetMonths": 24
+    }
+  ]
+}

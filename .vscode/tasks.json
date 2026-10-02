@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Build: dev", "type": "shell", "command": "node build/build.mjs --env dev", "group": { "kind": "build", "isDefault": true }, "problemMatcher": [] },
+    { "label": "Build: all environments", "type": "shell", "command": "node build/build.mjs --env all", "group": "build", "problemMatcher": [] },
+    { "label": "Preview (dev, fixture data)", "type": "shell", "command": "npm run preview", "isBackground": true, "problemMatcher": [] },
+    { "label": "Preview (dev, real extract in data/)", "type": "shell", "command": "node build/build.mjs --env dev && node tools/serve.mjs --env dev --data \"data/Pipeline Data.xlsx\"", "isBackground": true, "problemMatcher": [] },
+    { "label": "Test", "type": "shell", "command": "npm test", "group": { "kind": "test", "isDefault": true }, "problemMatcher": [] },
+    { "label": "Deploy: dev", "type": "shell", "command": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env dev", "problemMatcher": [] },
+    { "label": "Deploy: test", "type": "shell", "command": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env test", "problemMatcher": [] },
+    { "label": "Deploy: prod (asks for confirmation)", "type": "shell", "command": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env prod", "problemMatcher": [], "presentation": { "reveal": "always", "focus": true } }
+  ]
+}

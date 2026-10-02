@@ -1,0 +1,57 @@
+// Both pages: load cleanly, greet the viewer, navigate, theme, and never reveal where the data comes from.
+import { test, expect } from "@playwright/test";
+import { HOME, SCORE, FORBIDDEN, open } from "./helpers.mjs";
+
+for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE]]) {
+  test.describe(name, () => {
+    test("loads with no script errors and no horizontal scroll", async ({ page }) => {
+      const errors = await open(page, url);
+      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+      const vw = page.viewportSize().width;
+      expect(sw).toBeLessThanOrEqual(vw + 1);
+      expect(errors).toEqual([]);
+    });
+
+    test("does not show the data file name or source location", async ({ page }) => {
+      await open(page, url);
+      const text = await page.locator("body").innerText();
+      expect(text).not.toMatch(FORBIDDEN);
+    });
+
+    test("menu opens and links to the other page", async ({ page }) => {
+      await open(page, url);
+      await page.click("#navBtn");
+      await expect(page.locator("#navDrawer")).toBeVisible();
+      const other = name === "Home" ? "Portfolio_Scorecard.aspx" : "Home.aspx";
+      await expect(page.locator('#navDrawer a[href$="' + other + '"]').first()).toBeVisible();
+      await page.keyboard.press("Escape");
+    });
+
+    test("theme toggle switches and remembers", async ({ page }) => {
+      await open(page, url);
+      const before = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+      await page.click("#themeBtn");
+      const after = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+      expect(after).not.toBe(before);
+      expect(await page.evaluate(() => localStorage.getItem("fbin_theme"))).toBe(after);
+    });
+
+    test("shows the DEV environment badge", async ({ page }) => {
+      await open(page, url);
+      await expect(page.locator(".envbadge")).toHaveText("DEV");
+    });
+  });
+}
+
+test("Home greets the viewer by first name, by time of day", async ({ page }) => {
+  await open(page, HOME);
+  await expect(page.locator("#greet")).toHaveText(/^Good (morning|afternoon|evening), Alex$/);
+});
+
+test("Home headline count = In Progress + Roadmap, same as the scorecard default", async ({ page }) => {
+  await open(page, HOME);
+  const n = await page.evaluate(() => window.gpdData().rows.filter((r) => r.status === "In Progress" || r.status === "Roadmap").length);
+  await expect(page.locator("#kN")).toHaveText(String(n));
+  await open(page, SCORE);
+  await expect(page.locator("#inviewN")).toHaveText(String(n));
+});
