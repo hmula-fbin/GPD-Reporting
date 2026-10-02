@@ -1,7 +1,7 @@
 {
   "_note": "Test / UAT site. Replace CHANGE-ME-gpd-test with the real site name before the first test deploy.",
-  "env": "test",
-  "label": "Test",
+  "env": "qa",
+  "label": "QA",
   "sitePath": "/sites/GPDReportingQA",
   "showEnvBadge": true,
   "tenantUrl": "https://fbinportal.sharepoint.com",
