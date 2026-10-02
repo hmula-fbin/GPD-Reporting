@@ -48,10 +48,12 @@ test("Home greets the viewer by first name, by time of day", async ({ page }) =>
   await expect(page.locator("#greet")).toHaveText(/^Good (morning|afternoon|evening), Alex$/);
 });
 
-test("Home headline count = In Progress + Roadmap, same as the scorecard default", async ({ page }) => {
+test("Home is clean: no glance panel, no intro text, no scorecard button in the hero", async ({ page }) => {
   await open(page, HOME);
-  const n = await page.evaluate(() => window.gpdData().rows.filter((r) => r.status === "In Progress" || r.status === "Roadmap").length);
-  await expect(page.locator("#kN")).toHaveText(String(n));
-  await open(page, SCORE);
-  await expect(page.locator("#inviewN")).toHaveText(String(n));
+  const text = await page.locator("body").innerText();
+  expect(text).not.toMatch(/Portfolio at a glance/i);
+  expect(text).not.toMatch(/Track the innovation pipeline/i);
+  expect(text).not.toMatch(/Open Portfolio Score Card/i);
+  await expect(page.locator(".hero a")).toHaveCount(0);
+  await expect(page.locator('.card[href$="Portfolio_Scorecard.aspx"]')).toBeVisible();
 });

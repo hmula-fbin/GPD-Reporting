@@ -24,14 +24,15 @@ The full process is in docs/TEAM-GUIDE.md.
 
 ## House rules (business requirements, all covered by tests)
 1. **Never show where the data comes from.** No file name, "SharePoint", "workbook", network drive or library name in visible text. "Excel" appears only as the download-button label. `FORBIDDEN` in tests/helpers.mjs enforces this.
-2. **Project Status filter** defaults to In Progress + Roadmap. There is no Include/Exclude filter: show everything.
+2. **Default view**: Project Status defaults to In Progress only, and the Phase filter (right above Project Status) defaults to the Active Phase. There is no Include/Exclude filter: show everything.
 3. **"Ask questions about your data"** answers from the FULL data file (`window.gpdData().rows`), never from the filtered view. Engine is in `src/shared/ask.js`; answers are checked against `tests/oracle.mjs`.
 4. **KPIs and progress bars use one colour**: `--kpi` #1C5A8A, or #7CC0E4 in dark mode. No red/amber/green.
 5. **Bucket identity colours** stay as defined in `scorecard-colours.css`.
-6. **Excel downloads**: one per table, plus "Download all projects" at the top. No Excel buttons on "Portfolio at a glance".
+6. **Excel downloads**: one per table, plus "Download all projects" at the top. No Excel buttons on the scorecard's "Portfolio at a glance".
 7. **Filters sit in the left panel.** Drill-down works on bucket, stage, KPI and project rows. Hovering a Project Bucket shows the reference sheet from `config/bucket-reference.json`.
-8. **Home greeting**: time of day plus first name ("Good afternoon, Harinath"). No jokes or humour text.
+8. **Home greeting**: time of day plus first name ("Good afternoon, Harinath"). No jokes or humour text. Home stays clean: no glance panel, intro sentence or hero button.
 9. Portfolio Explorer is shelved and appears as "Soon" in the menu.
+10. **Scorecard header** shows "Last refreshed <date, time>" only (not "data updated" or "loaded").
 
 ## SharePoint constraints (the build enforces these)
 - No `<%@ Page %>` directive and no `<%` anywhere. Safe-mode pages reject server code.
