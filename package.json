@@ -1,6 +1,6 @@
 {
   "name": "gpd-portfolio-hub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "GPD Portfolio Hub - SharePoint Online pages (Home + Innovation & CI Portfolio Scorecard)",
   "type": "module",
@@ -14,8 +14,8 @@
     "fixture": "node tools/make-fixture.mjs",
     "test": "node build/build.mjs --env dev && playwright test",
     "test:ui": "node build/build.mjs --env dev && playwright test --ui",
-    "deploy:dev": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env dev",
-    "deploy:test": "pwsh -NoProfile -File deploy/Deploy-Portfolio.ps1 -Env test"
+    "deploy:dev": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev",
+    "deploy:test": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env test"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0"

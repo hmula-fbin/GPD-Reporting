@@ -1,5 +1,5 @@
 {
-  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Deploys here need a clean git tree, a version tag and typed confirmation.",
+  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod deploys need: the main branch, a clean tree, a version tag, the SAME commit already on the promoteFrom site (dev), a release owner, and typed confirmation.",
   "env": "prod",
   "label": "Production",
   "sitePath": "/sites/CHANGE-ME-gpd",
@@ -10,5 +10,9 @@
   "dataFileName": "Pipeline Data.xlsx",
   "reloadMinutes": 60,
   "reviewMonths": 30,
-  "pnpClientId": ""
+  "pnpClientId": "",
+  "promoteFrom": "dev",
+  "releaseOwners": [
+    "harinath.mula@moen.com"
+  ]
 }

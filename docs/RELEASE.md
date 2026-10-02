@@ -1,61 +1,33 @@
-# Release process: Dev -> Test -> Prod
+# Release process: Dev -> Prod
 
-## Branches and versions
+The step-by-step version, with exact Claude commands, is in [TEAM-GUIDE.md](TEAM-GUIDE.md). This page is the reference.
 
-- `main` is always releasable. Work happens on short branches such as `feature/drill-export` or `fix/greeting`, which merge into `main` once the tests pass.
-- Versions follow semver in `package.json`:
-  - patch for fixes (1.0.1);
-  - minor for new features (1.1.0);
-  - major for breaking changes, such as a data layout change (2.0.0).
-- Every production release is a git tag, `v<version>`. The deploy script checks for it.
-- Record each release in `CHANGELOG.md`.
+## Rules
+- **Branches:** each change lives on its own branch, `change/<name>`, created with `/start-change`. `main` holds only approved, released work.
+- **Dev:** any team member can deploy any change branch to Dev (`/deploy-dev`) so the requester can test it.
+- **Prod:** only a release owner (`releaseOwners` in `config/prod.json`) can deploy, and only when all of these hold:
+  - they are on `main` with a clean tree;
+  - HEAD is tagged `v<version>`;
+  - the tests pass;
+  - the **same version and commit is live on Dev** (`promoteFrom: "dev"`). The script reads the build stamp `<meta name="gpd-build">` from the Dev Home page.
+- **Versions** follow semver in `package.json`: patch for fixes (1.0.1), minor for features (1.1.0), major for breaking changes such as a new data layout. Every release has a tag and a `CHANGELOG.md` entry, which `/approve-release` writes.
+- **Optional Test/UAT site:**
+  1. Fill in `config/test.json`.
+  2. Set `"promoteFrom": "test"` in `config/prod.json`.
+  3. Deploy to Test with `npm run deploy:test` before Prod.
 
-## Every change
-
-1. `git switch -c feature/<name>`
-2. Make the change in `src/` or `config/`. In VS Code you can ask Claude: `/change <what you want>`.
-3. Run `npm test` and wait for green.
-4. Run `npm run deploy:dev` and check it on the Dev site. Use your real login and a copy of the real data.
-5. Commit, then merge to `main`:
+## Release (release owner)
+1. Run `/approve-release change/<name>`. It merges the approved branches, runs the tests, bumps the version, updates the changelog, tags the release and shares it.
+2. Run the task **Deploy: dev**. This puts that exact release on Dev; have a quick look.
+3. Run the task **Deploy: prod (asks for confirmation)** and type `DEPLOY PROD`.
+4. Smoke test on Prod: open Home and the Scorecard, press Refresh now, and ask one question.
+5. If something is wrong, roll back:
    ```powershell
-   git switch main
-   git merge --no-ff feature/<name>
+   pwsh -ExecutionPolicy Bypass -File .\deploy\Deploy-Portfolio.ps1 -Env prod -Rollback <backup id>
    ```
+   Every deploy prints its backup id. Backups are kept in `backups/<env>/` on the deploying PC.
 
-## Release to Test (UAT)
-
-1. On `main`, bump the version in `package.json` and add a `CHANGELOG.md` entry.
-2. Commit:
-   ```powershell
-   git commit -am "Release v1.1.0"
-   ```
-3. Tag:
-   ```powershell
-   git tag -a v1.1.0 -m "Release v1.1.0"
-   ```
-4. Run `npm run deploy:test`.
-5. Business sign-off on the Test site. Use the checklist below.
-
-## Release to Prod
-
-1. In Claude Code, run `/release-check`. You can also check by hand: clean tree, tag on HEAD, tests green, and the same commit already on Test.
-2. Run:
-   ```powershell
-   pwsh ./deploy/Deploy-Portfolio.ps1 -Env prod
-   ```
-   The script refuses if:
-   - the tree is dirty;
-   - HEAD is not tagged `v<version>`;
-   - that commit was not deployed to Test from this machine.
-
-   It then asks you to type `DEPLOY PROD`.
-3. Smoke test on Prod: open Home, open the Scorecard, press Refresh now, and ask one question.
-4. If something is wrong, roll back. The deploy printed a backup id:
-   ```powershell
-   pwsh ./deploy/Deploy-Portfolio.ps1 -Env prod -Rollback 20261002-141500
-   ```
-
-## UAT checklist (Test site)
+## Sign-off checklist (requester, on Dev)
 
 - [ ] Home greets you by first name. The glance figures match the Scorecard default view.
 - [ ] Project Status defaults to In Progress + Roadmap. Changing the filters updates every table.

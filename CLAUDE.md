@@ -3,12 +3,22 @@
 Two SharePoint Online pages (Home.aspx, Portfolio_Scorecard.aspx) built from the modular source in `src/`.
 Each page reads the pipeline workbook live in the browser through the SharePoint REST API, as the person viewing.
 
+## Who you're working with
+Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
+- `/get-latest`, `/start-change`, `/change`, `/share-change` and `/deploy-dev`, for everyone;
+- `/approve-release` and `/release-check`, for the release owner.
+
+The full process is in docs/TEAM-GUIDE.md.
+
 ## Workflow
+- **Flow:** change branch (`change/<name>`), then Dev site for testing, then the release owner merges to `main`, tags it, deploys main to Dev, then Prod.
+- Never commit change work directly on `main`. Only `/approve-release` merges into main.
+- The shared remote (`origin`) is a bare repo in a OneDrive folder. It will later move to GitHub. Never force-push, never `reset --hard`, never delete someone else's branch.
 - Edit only `src/` and `config/`. `dist/` is generated; `src/vendor/` is third-party (don't edit it).
 - Build: `node build/build.mjs --env dev` (or `--env all`). Preview: `npm run preview` (fake SharePoint plus synthetic data).
 - Test: `npm test` (Playwright, desktop + mobile). Every change must leave the tests green.
 - A new requirement gets a test in `tests/`.
-- Never run a prod deploy. Never `git push`. Don't read `data/`, which holds real extracts.
+- **Never run a prod deploy.** The release owner runs it from a VS Code task. Don't read `data/`, which holds real extracts.
 
 ## House rules (business requirements, all covered by tests)
 1. **Never show where the data comes from.** No file name, "SharePoint", "workbook", network drive or library name in visible text. "Excel" appears only as the download-button label. `FORBIDDEN` in tests/helpers.mjs enforces this.
@@ -41,7 +51,8 @@ Each page reads the pipeline workbook live in the browser through the SharePoint
 | Build | `build/build.mjs` |
 | Local preview server | `tools/serve.mjs` |
 | Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.xlsx` |
-| Deploy | `deploy/Deploy-Portfolio.ps1` (PnP.PowerShell) |
+| Deploy | `deploy/Deploy-Portfolio.ps1` (PnP.PowerShell). Prod checks the build stamp live on Dev |
+| Team setup scripts | `setup/1-Install-Tools.ps1`, `2-Create-Shared-Copy.ps1`, `3-Join-Project.ps1` |
 
 ## Data facts
 - The parser finds a sheet named PIPELINE (or one whose header row has "Project Name" and "Project Bucket (NEW)"). The header row is found within the first 30 rows.

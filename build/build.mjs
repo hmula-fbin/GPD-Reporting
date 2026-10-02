@@ -12,7 +12,7 @@
     <!-- @include path.html crumb="Title" -->     paste a partial; crumb="" adds the breadcrumb
     <!-- @config -->                              window.GPD_CONFIG + const SOURCE for this environment
 
-  Tokens (anywhere): {{SITE_PATH}} {{PAGES_URL}} {{DATA_FILE}} {{ENV}} {{ENV_LABEL}} {{VERSION}}
+  Tokens (anywhere): {{SITE_PATH}} {{PAGES_URL}} {{DATA_FILE}} {{ENV}} {{ENV_LABEL}} {{VERSION}} {{COMMIT}}
     {{BUILD_TIME}} {{REVIEW_MONTHS}} {{ENV_BADGE}} {{CRUMB}} {{PAGE_TITLE}} {{BUCKET_REF_JSON}} {{asset:file.png}}
 
   Output rules SharePoint enforces (the build fails if any is broken):
@@ -22,6 +22,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
@@ -91,7 +92,7 @@ function expand(html, ctx) {
 
 function configScript(c) {
   const pub = {
-    env: c.env, label: c.label, version: pkg.version, built: BUILD_TIME,
+    env: c.env, label: c.label, version: pkg.version, commit: COMMIT, built: BUILD_TIME,
     tenantUrl: c.tenantUrl, sitePath: c.sitePath, pagesUrl: c.pagesUrl, dataFile: c.dataFile,
     reloadMinutes: c.reloadMinutes, reviewMonths: c.reviewMonths,
   };
@@ -104,7 +105,7 @@ function tokens(s, cfg) {
   const badge = cfg.showEnvBadge ? '<span class="envbadge" title="' + cfg.label + ' build ' + pkg.version + '">' + cfg.env.toUpperCase() + "</span>" : "";
   const map = {
     SITE_PATH: cfg.sitePath, PAGES_URL: cfg.pagesUrl, DATA_FILE: cfg.dataFile, ENV: cfg.env, ENV_LABEL: cfg.label,
-    VERSION: pkg.version, BUILD_TIME: BUILD_TIME, REVIEW_MONTHS: String(cfg.reviewMonths), ENV_BADGE: badge,
+    VERSION: pkg.version, COMMIT: COMMIT, BUILD_TIME: BUILD_TIME, REVIEW_MONTHS: String(cfg.reviewMonths), ENV_BADGE: badge,
     BUCKET_REF_JSON: bucketRefJson(),
   };
   return s.replace(/\{\{asset:([\w.-]+)\}\}/g, (_, n) => asset(n))
@@ -132,12 +133,21 @@ function check(out, name) {
   if (!out.includes("window.GPD_CONFIG")) fail(name + " has no <!-- @config -->");
 }
 
+/* Which commit this build came from ("-dirty" = uncommitted changes). Prod deploys compare it with Dev. */
+function gitCommit() {
+  try {
+    const sha = execSync("git rev-parse --short=8 HEAD", { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    const dirty = execSync("git status --porcelain", { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    return sha + (dirty ? "-dirty" : "");
+  } catch { return "nogit"; }
+}
+const COMMIT = gitCommit();
 const BUILD_TIME = new Date().toISOString().replace(/\.\d+Z$/, "Z");
 for (const env of envs) {
   const cfg = loadConfig(env);
   const dir = path.join(outRoot, env);
   fs.mkdirSync(dir, { recursive: true });
-  const manifest = { env, version: pkg.version, built: BUILD_TIME, sitePath: cfg.sitePath, pagesUrl: cfg.pagesUrl, files: [] };
+  const manifest = { env, version: pkg.version, commit: COMMIT, built: BUILD_TIME, sitePath: cfg.sitePath, pagesUrl: cfg.pagesUrl, files: [] };
   for (const pg of PAGES) {
     let out = ascii(tokens(expand(read(pg.template), { cfg }), cfg));
     check(out, env + "/" + pg.out);
@@ -146,5 +156,5 @@ for (const env of envs) {
   }
   fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   if (/CHANGE-ME/i.test(cfg.sitePath)) console.warn("WARNING " + env + ": config still has a CHANGE-ME site path - fill in config/" + env + ".json before deploying.");
-  console.log("built " + env.padEnd(4) + " -> " + path.relative(ROOT, dir) + "  (" + manifest.files.map((f) => f.name + " " + (f.bytes / 1024).toFixed(0) + " KB").join(", ") + ")");
+  console.log("built " + env.padEnd(4) + " v" + pkg.version + " " + COMMIT + " -> " + path.relative(ROOT, dir) + "  (" + manifest.files.map((f) => f.name + " " + (f.bytes / 1024).toFixed(0) + " KB").join(", ") + ")");
 }

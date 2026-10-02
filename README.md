@@ -9,52 +9,26 @@ Both pages read the pipeline workbook live from SharePoint as the person viewing
 
 ```
  src/ (modules) --node build--> dist/<env>/*.aspx --Deploy-Portfolio.ps1--> SharePoint site per environment
-                                     |                                       Dev -> Test -> Prod
+                                     |                                       Dev (testing) -> Prod
                                      +-- npm test (Playwright against a fake SharePoint)
 ```
 
-## One-time setup (Windows, VS Code)
+## Start here
 
-1. Install the tools:
-   - [Node.js 20 LTS or newer](https://nodejs.org)
-   - [Git](https://git-scm.com)
-   - PowerShell 7: `winget install Microsoft.PowerShell`
-2. Unzip this folder, for example to `C:\dev\gpd-portfolio-hub`. Open it in VS Code with **File > Open Folder**.
-3. Accept the recommended extensions when VS Code asks. They include **Claude Code**, Playwright and PowerShell.
-4. Open the terminal (Ctrl+`) and run:
-   ```powershell
-   npm install
-   npx playwright install chromium
-   npm test
-   ```
-   All tests should pass.
-5. Run the deployment setup once:
-   ```powershell
-   pwsh ./deploy/Setup-PnPApp.ps1 -Tenant fbinportal.onmicrosoft.com
-   ```
-   Copy the Client ID it prints into `pnpClientId` in each `config/*.json` file. Your tenant admin may need to approve the app; see docs/RELEASE.md.
-6. Fill in the real Test and Prod site paths in `config/test.json` and `config/prod.json`. They currently say `CHANGE-ME`.
+**New to VS Code or joining the team? Follow [docs/TEAM-GUIDE.md](docs/TEAM-GUIDE.md).** It covers setup for the release owner and for team members, making a change with Claude, testing on Dev, and releasing to Prod.
 
-## Daily work
+Quick reference:
 
-| I want to... | Run (or use Terminal > Run Task) |
+| I want to... | Type in the Claude panel / run |
 |---|---|
-| See my change locally | `npm run preview`, then open http://localhost:5173 |
-| Preview with a real extract | Put the file in `data/` and run the task **Preview (dev, real extract)** |
-| Run the tests | `npm test` (or `npm run test:ui` for the visual runner) |
-| Build every environment | `npm run build:all` |
-| Put it on Dev | `npm run deploy:dev` |
-| Put it on Test | `npm run deploy:test` |
-| Release to Prod | Follow [docs/RELEASE.md](docs/RELEASE.md) |
-
-## Using Claude Code in VS Code
-
-Open the Claude Code panel (the Claude icon in the sidebar, or Ctrl+Esc) and sign in with your Claude account. Claude reads `CLAUDE.md` first, so it knows the house rules, the folder layout and the commands. Two project commands are included:
-
-- `/change <what you want>`: edits the right module, builds, runs the tests, and suggests a commit message.
-- `/release-check`: gives a go / no-go for Test and Prod.
-
-Claude is not allowed to deploy to prod or to `git push`; see `.claude/settings.json`. You do those steps yourself.
+| Get the team's latest work | `/get-latest` |
+| Start a change | `/start-change <short description>` |
+| Make the change | Describe it in plain English, or `/change <description>` |
+| See it on my PC | Task **Preview (dev, fixture data)**, then open http://localhost:5173 |
+| Save and share it | `/share-change` |
+| Put it on Dev for testing | `/deploy-dev` |
+| (Release owner) approve it | `/approve-release change/<name>` |
+| (Release owner) release to Prod | Task **Deploy: dev**, then task **Deploy: prod (asks for confirmation)** |
 
 ## Layout
 
@@ -71,5 +45,7 @@ build/build.mjs    modules -> dist/<env>/*.aspx (SharePoint-safe, ASCII, checked
 tools/             serve.mjs (local fake SharePoint)  make-fixture.mjs (synthetic data)
 tests/             Playwright specs + oracle + fixture
 deploy/            Deploy-Portfolio.ps1  Setup-PnPApp.ps1
-docs/              ARCHITECTURE.md  RELEASE.md
+setup/             1-Install-Tools  2-Create-Shared-Copy  3-Join-Project
+.claude/           settings.json (what Claude may do)  commands/ (team slash commands)
+docs/              TEAM-GUIDE.md  ARCHITECTURE.md  RELEASE.md
 ```
