@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0 - 2026-10-02
+- Home is cleaner: the "Portfolio at a glance" panel, the intro sentence and the "Open Portfolio Score Card" button are gone. The footer shows when the data was last refreshed.
+- Scorecard: new Phase filter, right above Project Status, opening on the Active Phase.
+- Scorecard: Project Status now opens on In Progress only (it was In Progress + Roadmap), so the opening figures are smaller.
+- Scorecard header shows "Last refreshed" with the date and time, in place of "data updated" and "loaded".
+- Month-over-month trend: earlier months are recalculated for the new default view; months saved before the Phase filter existed are left out, with a note, rather than compared like for like.
+- The pages point at the real Dev (GPDReportingSBX), QA (GPDReportingQA) and Prod (GPDReporting) sites and their Report Pages libraries. The Test site is labelled QA.
+
 ## v1.2.0 - 2026-10-02
 - Manual-upload route: `/package-dev` and `/package-prod` (tests, strict build, `UPLOAD-STEPS.txt`, opens the folder and the library). The automatic PnP deploy is now optional.
 - The build refuses `CHANGE-ME` site paths when packaging.
