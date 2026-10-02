@@ -17,7 +17,7 @@ const BCOLOR = {
 /* Header -> internal field. Keys are whitespace-collapsed, case-insensitive. */
 const FIELD_MAP = {
   "project name":"name","include":"inc","project bucket (new)":"bucket","bu":"bu","business":"biz",
-  "brand":"brand","market":"mkt","stage":"stage","finish":"finish","finish year":"fy",
+  "brand":"brand","market":"mkt","phase":"phase","stage":"stage","finish":"finish","finish year":"fy",
   "target execution time (months)":"tgt","forecasted execution time (months)":"fc",
   "total ns (annualized)":"ns","total cm (annualized)":"cm",
   "incremental ns (annualized)":"ins","incremental cm (annualized)":"icm",
@@ -106,7 +106,7 @@ function parseWorkbook(buf, fileName){
     const fin = get("finish");
     rows.push({
       name, inc: nk(get("inc")).toUpperCase(), bucket: nk(get("bucket")),
-      bu: nk(get("bu")), biz: nk(get("biz")), brand: nk(get("brand")), mkt: nk(get("mkt")),
+      bu: nk(get("bu")), biz: nk(get("biz")), brand: nk(get("brand")), mkt: nk(get("mkt")), phase: nk(get("phase")),
       stage: nk(get("stage")), fy: nk(get("fy")).replace(/\.0$/,""),
       finish: fin instanceof Date ? (function(x){ x=new Date(x.getTime()+30000); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); })(fin) : (nk(fin)||null),
       tgt:num(get("tgt")), fc:num(get("fc")), ns:num(get("ns")), cm:num(get("cm")),
@@ -126,7 +126,7 @@ function stageOf(r){
 }
 function tracked(rows){ return rows.filter(r => !!r.bu); }   // Summary 1: ISTEXT(BU)
 
-const FKEYS = ["status","bu","biz","brand","mkt","stage","fy"];
+const FKEYS = ["status","phase","bu","biz","brand","mkt","stage","fy"];
 /* An empty selection means no restriction on that field; otherwise the
    row's value must be one of the chosen ones. Fields are ANDed together,
    values within a field are ORed. */
@@ -384,7 +384,7 @@ function expRows(id){
 /* Context rows so a downloaded file explains itself weeks later. */
 function expContext(){
   const f = S.filters, on = [];
-  ["bu","biz","brand","mkt","stage","fy","status"].forEach(k => {
+  ["bu","biz","brand","mkt","stage","fy","phase","status"].forEach(k => {
     if ((f[k]||[]).length) on.push(FLABEL[k]+" = "+f[k].map(optText).join(" | "));
   });
   return [
@@ -510,7 +510,7 @@ function scorecardView(c,hist,prev,filtered){
   const glanceAct = '<span class="act" id="glanceAct"></span>';
   h += '<section><div class="shead"><h2>Portfolio at a glance</h2><span class="sub">'
     + (filtered ? "Filtered view" : "Full portfolio")
-    + " \u00b7 Project Status = " + esc(statusText()) + '</span>'
+    + (S.present.phase ? " \u00b7 Phase = " + esc(phaseText()) : "") + " \u00b7 Project Status = " + esc(statusText()) + '</span>'
     + glanceAct + '</div>';
   h += '<div class="hero">';
   const heroNpdId = expId("NPD annualized NS by month","chart",
@@ -593,17 +593,18 @@ function scorecardView(c,hist,prev,filtered){
 function trendView(histAll){
   const active = filtersActive();
   const dropped = [];
-  const usable = !active ? histAll : histAll.filter(sn => {
+  const usable = histAll.filter(sn => {
+    if (storedOk(sn)) return true;
     const cov = coverage(sn);
     if (!cov.ok){ dropped.push({month:sn.month, why:cov.why}); return false; }
     return true;
   });
   const hist = usable.map(sn => ({month:sn.month, capturedAt:sn.capturedAt, fileName:sn.fileName,
-                                  m: metricsFor(sn) || sn.m}));
+                                  m: metricsFor(sn)}));
 
   let h = '<div class="tnote"><span>' + (active
       ? 'Showing the <strong>filtered</strong> view \u2014 every month below is recalculated against the filters you set above.'
-      : 'Every figure on this tab covers the <strong>In Progress and Roadmap</strong> projects.')
+      : 'Every figure on this tab covers the <strong>In Progress</strong> projects in the <strong>Active Phase</strong>.')
     + '</span><span class="act"><button class="btn sm" id="snapBtn">Snapshot this month now</button></span></div>';
 
   if (S.trendLoading)
@@ -611,7 +612,7 @@ function trendView(histAll){
   if (dropped.length && !S.trendLoading){
     const lines = dropped.map(d => esc(monthLabel(d.month)) + " \u2014 " + esc(d.why));
     h += '<div class="warnbar"><span><b>'
-       + dropped.length + ' month' + (dropped.length>1?"s are":" is") + ' not comparable under these filters</b>'
+       + dropped.length + ' month' + (dropped.length>1?"s are":" is") + ' not comparable under this view</b>'
        + ' and ' + (dropped.length>1?"have":"has") + ' been left out, rather than plotted as zero:<br>'
        + lines.join('<br>')
        + '<br><span class="muted">A month that never covered what you are filtering on would otherwise draw a line up from $0 and read as growth.</span>'
@@ -742,16 +743,23 @@ function renderFoot(){
 }
 
 /* ---------- filters ---------- */
-/* Default view: projects that are In Progress or on the Roadmap. Every row in the file counts;
-   there is no Include/Exclude filter. */
-const DEFAULT_STATUS = ["In Progress","Roadmap"];
+/* Default view: In Progress projects in the Active Phase. Every row in the file counts;
+   there is no Include/Exclude filter. A file with no Phase column opens on status alone. */
+const DEFAULT_STATUS = ["In Progress"];
+const DEFAULT_PHASE = /\bactive\b/i;
+/* Bumped whenever the default view changes, so stored monthly totals taken under an
+   older default are recalculated instead of compared like for like. */
+const DEFAULT_VIEW = "v3:in-progress+active-phase";
 function defaultFilters(){
-  const have = (S && S.rows && S.rows.length) ? Array.from(new Set(S.rows.map(r=>r.status).filter(Boolean))) : DEFAULT_STATUS;
-  const st = have.filter(v => DEFAULT_STATUS.some(d => d.toLowerCase()===String(v).toLowerCase()));
-  return {status: st.length ? st : DEFAULT_STATUS.slice(), bu:[],biz:[],brand:[],mkt:[],stage:[],fy:[]};
+  const vals = k => (S && S.rows && S.rows.length) ? Array.from(new Set(S.rows.map(r=>r[k]).filter(Boolean))) : [];
+  const st = vals("status").filter(v => DEFAULT_STATUS.some(d => d.toLowerCase()===String(v).toLowerCase()));
+  return {status: st.length ? st : DEFAULT_STATUS.slice(), phase: vals("phase").filter(v => DEFAULT_PHASE.test(v)),
+          bu:[],biz:[],brand:[],mkt:[],stage:[],fy:[]};
 }
-function isDefaultStatus(){ const a=(S.filters.status||[]).slice().sort().join("|"), b=defaultFilters().status.slice().sort().join("|"); return a===b; }
+function isDefault(key){ const a=(S.filters[key]||[]).slice().sort().join("|"), b=defaultFilters()[key].slice().sort().join("|"); return a===b; }
+function isDefaultStatus(){ return isDefault("status"); }
 function statusText(){ const s=S.filters.status||[]; return s.length ? s.map(optText).join(" + ") : "all statuses"; }
+function phaseText(){ const s=S.filters.phase||[]; return s.length ? s.map(optText).join(" + ") : "all phases"; }
 const FILTER_DEFS = [
   {key:"bu",    label:"Business unit"},
   {key:"biz",   label:"Business"},
@@ -759,6 +767,7 @@ const FILTER_DEFS = [
   {key:"mkt",   label:"Market"},
   {key:"stage", label:"Stage"},
   {key:"fy",    label:"Finish year"},
+  {key:"phase", label:"Phase"},
   {key:"status", label:"Project Status"}
 ];
 const FLABEL = {}; FILTER_DEFS.forEach(d=>FLABEL[d.key]=d.label);
@@ -794,6 +803,9 @@ function msLabelText(key, opts){
 }
 function buildFilterOptions(){
   const host = $("filterFields");
+  /* The Active Phase default can only be picked once the file's phases are known. */
+  const dp = defaultFilters().phase;
+  if (!S.phaseInit && dp.length){ S.phaseInit = true; if (!(S.filters.phase||[]).length) S.filters.phase = dp; }
   host.innerHTML = FILTER_DEFS.map(d => {
     const opts = optionsFor(d.key);
     /* drop selections that no longer exist in the new data */
@@ -840,7 +852,7 @@ function syncFilterUI(){
 function renderChips(){
   const box = $("filterChips");
   const on = FILTER_DEFS.filter(d => (S.filters[d.key]||[]).length)
-    .filter(d => !(d.key==="status" && isDefaultStatus()));
+    .filter(d => !((d.key==="status" || d.key==="phase") && isDefault(d.key)));
   if (!on.length){ box.innerHTML = ""; return; }
   box.innerHTML = on.map(d => {
     const v = S.filters[d.key];
@@ -924,7 +936,7 @@ function saveSnapsLocal(){
   /* rows are kept for the latest 24 months so the trend can be re-filtered;
      older months keep their totals only */
   const keepRows = S.snaps.slice(-24).map(s=>s.month);
-  const pack = s => ({month:s.month, capturedAt:s.capturedAt, fileName:s.fileName, m:s.m,
+  const pack = s => ({month:s.month, capturedAt:s.capturedAt, fileName:s.fileName, m:s.m, dv:s.dv,
                       rowCount:s.rowCount||0, chunkCount: (s.rows && keepRows.indexOf(s.month)>-1) ? 1 : 0,
                       rows: keepRows.indexOf(s.month)>-1 ? (s.rows||null) : null});
   try{ localStorage.setItem(LS_SNAP, JSON.stringify(S.snaps.map(pack))); }
@@ -988,7 +1000,7 @@ async function loadSnapshots(){
     try{
       const q = await S.db.collection("snapshots").limit(240).get();
       S.snaps = q.docs.map(d=>{ const v=d.data(); return {month:d.id, capturedAt:v.capturedAt, fileName:v.fileName,
-                                 m:v.m||{}, rowCount:v.rowCount||0, chunkCount:v.chunkCount||0}; })
+                                 m:v.m||{}, dv:v.dv, rowCount:v.rowCount||0, chunkCount:v.chunkCount||0}; })
                       .sort((a,b)=>a.month<b.month?-1:1);
       if (S.snaps.length) return;
     }catch(e){ console.warn("db snapshots failed",e); }
@@ -1001,7 +1013,7 @@ async function captureSnapshot(manual, monthArg){
   const rows = S.rows.slice();
   const chunks = []; for(let i=0;i<rows.length;i+=CHUNK) chunks.push(rows.slice(i,i+CHUNK));
   const rec = { month, capturedAt:new Date().toISOString(), fileName:S.meta?S.meta.fileName:null,
-                m:snapshotMetrics(rows), rowCount:rows.length, chunkCount:chunks.length, rows:rows };
+                m:snapshotMetrics(rows), dv:DEFAULT_VIEW, rowCount:rows.length, chunkCount:chunks.length, rows:rows };
   const prevRec = S.snaps.find(s=>s.month===month);
   const prevChunks = prevRec ? (prevRec.chunkCount||0) : 0;
   const i = S.snaps.findIndex(s=>s.month===month);
@@ -1010,7 +1022,7 @@ async function captureSnapshot(manual, monthArg){
   saveSnapsLocal();
   if (S.db){
     try{
-      await S.db.doc("snapshots/"+month).set({capturedAt:rec.capturedAt, fileName:rec.fileName, m:rec.m,
+      await S.db.doc("snapshots/"+month).set({capturedAt:rec.capturedAt, fileName:rec.fileName, m:rec.m, dv:rec.dv,
                                               rowCount:rec.rowCount, chunkCount:chunks.length});
       /* the month's own copy of the projects, so any filter can be applied to it later */
       for (let k=0;k<chunks.length;k++) await S.db.doc("snapshots/"+month+"/parts/p"+k).set({rows:chunks[k]});
@@ -1039,9 +1051,11 @@ async function loadSnapRows(sn){
     return sn.rows;
   }catch(e){ console.warn("snapshot rows failed",e); return null; }
 }
-/* Only needed when a filter is on: unfiltered months use their stored totals. */
+/* A month's stored totals stand only for the current default view; anything else is recalculated. */
+const storedOk = sn => !filtersActive() && sn.dv === DEFAULT_VIEW;
+/* Only needed when a month cannot use its stored totals. */
 async function prepareTrend(){
-  if (S.tab !== "trend" || !filtersActive()) return;
+  if (S.tab !== "trend" || S.snaps.every(storedOk)) return;
   const need = S.snaps.filter(sn => sn.chunkCount && !sn.rows);
   if (!need.length) return;
   S.trendLoading = true; render();
@@ -1050,7 +1064,7 @@ async function prepareTrend(){
 }
 /* The figures a month contributes to the trend under the current filters. */
 function metricsFor(sn){
-  if (!filtersActive()) return sn.m;
+  if (storedOk(sn)) return sn.m;
   if (sn.rows) return snapshotMetrics(sn.rows, S.filters);
   return null;                       // this month predates per-month row storage
 }
@@ -1095,7 +1109,7 @@ async function moveSnapshot(from, to){
   saveSnapsLocal();
   if (S.db){
     try{
-      await S.db.doc("snapshots/"+to).set({capturedAt:rec.capturedAt, fileName:rec.fileName, m:rec.m});
+      await S.db.doc("snapshots/"+to).set({capturedAt:rec.capturedAt, fileName:rec.fileName, m:rec.m, dv:rec.dv||null});
       await S.db.doc("snapshots/"+from).delete();
     }catch(e){ console.warn(e); }
   }
@@ -1134,7 +1148,7 @@ async function ingest(file){
 function refreshSourcePill(){
   if (!S.meta) return;
   const fmt = d => new Date(d).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-  $("subline").textContent = "Live portfolio figures" + (S.meta.sourceModified ? " \u00b7 data updated " + fmt(S.meta.sourceModified) : "") + " \u00b7 loaded " + fmt(S.meta.uploadedAt);
+  $("subline").textContent = "Live portfolio figures \u00b7 Last refreshed " + fmt(S.meta.uploadedAt);
 }
 
 /* ---------- CSV export ---------- */

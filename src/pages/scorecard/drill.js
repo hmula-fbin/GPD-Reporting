@@ -78,8 +78,9 @@
   function scopeText(){
     const f=S.filters, on=[];
     ["bu","biz","brand","mkt","stage","fy"].forEach(k=>{ if((f[k]||[]).length) on.push(FLABEL[k]+": "+f[k].map(optText).join(", ")); });
+    if (!isDefault("phase")) on.push("Phase: "+phaseText());
     if (!isDefaultStatus()) on.push("Project Status: "+statusText());
-    return on.length ? "Filtered view \u00b7 "+on.join(" \u00b7 ") : "In Progress and Roadmap projects";
+    return on.length ? "Filtered view \u00b7 "+on.join(" \u00b7 ") : "In Progress projects in the Active Phase";
   }
   function open(s){
     D.title=s.t; D.base=s.rows.slice(); D.sort=s.sort||{k:"ns",d:-1}; D.q=""; D.proj=null; D.key=s;

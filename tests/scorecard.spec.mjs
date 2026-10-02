@@ -1,15 +1,32 @@
 // Scorecard behaviour that the business asked for. If one of these fails, a requirement broke.
 import { test, expect } from "@playwright/test";
-import { SCORE, open, allRows } from "./helpers.mjs";
+import { SCORE, open, allRows, inDefaultView } from "./helpers.mjs";
 
 const NPD = ["Grow the Core", "Refresh & Sustain", "Create & Transform"];
 
-test("Project Status defaults to In Progress + Roadmap", async ({ page }) => {
+test("Project Status defaults to In Progress only, and Phase to the Active Phase", async ({ page }) => {
   await open(page, SCORE);
-  expect(await page.evaluate(() => S.filters.status.slice().sort())).toEqual(["In Progress", "Roadmap"]);
+  expect(await page.evaluate(() => S.filters.status)).toEqual(["In Progress"]);
+  const phases = await page.evaluate(() => S.filters.phase);
+  expect(phases.length).toBeGreaterThan(0);
+  for (const p of phases) expect(p).toMatch(/\bactive\b/i);
   const rows = await allRows(page);
-  const expected = rows.filter((r) => r.status === "In Progress" || r.status === "Roadmap").length;
+  const expected = rows.filter((r) => r.bu && inDefaultView(r)).length;
   await expect(page.locator("#inviewN")).toHaveText(String(expected));
+});
+
+test("Phase filter sits right above the Project Status filter", async ({ page }) => {
+  await open(page, SCORE);
+  const keys = await page.locator("#filterFields .ms").evaluateAll((els) => els.map((e) => e.getAttribute("data-key")));
+  expect(keys.indexOf("phase")).toBe(keys.indexOf("status") - 1);
+  await expect(page.locator("#lab_phase")).toHaveText("Phase");
+});
+
+test("header shows the last refreshed date and time, not data updated / loaded", async ({ page }) => {
+  await open(page, SCORE);
+  const sub = page.locator("#subline");
+  await expect(sub).toContainText(/Last refreshed [A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2}\s?[AP]M/);
+  await expect(sub).not.toContainText(/data updated|loaded/i);
 });
 
 test("filters sit in the left panel on desktop", async ({ page, isMobile }) => {
@@ -36,7 +53,7 @@ test("Download all projects gives an .xlsx", async ({ page }) => {
 test("drill-down: bucket -> projects -> one project -> back", async ({ page }) => {
   await open(page, SCORE);
   const rows = await allRows(page);
-  const bucket = NPD.find((b) => rows.some((r) => r.bucket === b && ["In Progress", "Roadmap"].includes(r.status)));
+  const bucket = NPD.find((b) => rows.some((r) => r.bucket === b && inDefaultView(r)));
   await page.click("tr.drillable >> text=" + bucket);
   await expect(page.locator("#drTitle")).toContainText(bucket);
   const n = await page.locator("#drTable tbody tr[data-i]").count();

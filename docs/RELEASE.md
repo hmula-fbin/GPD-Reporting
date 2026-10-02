@@ -33,7 +33,7 @@ The step-by-step version, with exact Claude commands, is in [TEAM-GUIDE.md](TEAM
 ## Sign-off checklist (requester, on Dev)
 
 - [ ] Home greets you by first name. The glance figures match the Scorecard default view.
-- [ ] Project Status defaults to In Progress + Roadmap. Changing the filters updates every table.
+- [ ] Project Status defaults to In Progress, and Phase to the Active Phase. Changing the filters updates every table.
 - [ ] Drill-down works on a bucket, a stage, a KPI and a project.
 - [ ] Each table has an Excel download, and Download all projects works. The glance section has no Excel buttons.
 - [ ] Hovering a Project Bucket shows the reference sheet.

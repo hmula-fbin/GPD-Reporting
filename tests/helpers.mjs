@@ -17,9 +17,12 @@ export async function open(page, url) {
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(url);
   if (url.endsWith("Portfolio_Scorecard.aspx")) await expect(page.locator("#content")).toBeVisible({ timeout: 15_000 });
-  else await expect(page.locator("#kN .sk")).toHaveCount(0, { timeout: 15_000 });
+  else await page.waitForFunction(() => !!window.gpdHome, null, { timeout: 15_000 });
   return errors;
 }
 
 /* Every project the assistant can see (the full data file, not the filtered page). */
 export const allRows = (page) => page.evaluate(() => window.gpdData().rows);
+
+/* The default view on the scorecard: In Progress projects in the Active Phase. */
+export const inDefaultView = (r) => r.status === "In Progress" && /\bactive\b/i.test(r.phase || "");

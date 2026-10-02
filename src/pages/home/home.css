@@ -41,45 +41,11 @@ a{color:inherit}
   background:radial-gradient(1200px 400px at 85% -10%,rgba(219,164,48,.22),transparent 60%),
              linear-gradient(135deg,var(--brand-3) 0%,var(--brand-2) 45%,var(--brand) 100%)}
 .hero svg.pattern{position:absolute;inset:0;width:100%;height:100%;opacity:.10;pointer-events:none}
-.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:36px;padding-top:44px;padding-bottom:56px;align-items:center}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:36px;padding-top:44px;padding-bottom:56px;align-items:center}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;line-height:1.4;font-weight:600;color:var(--amber-2);letter-spacing:.02em}
 .eyebrow::before{content:"";width:22px;height:2px;border-radius:2px;background:var(--amber)}
 .hero h1{font-size:40px;line-height:1.08;font-weight:700;margin-top:12px}
 .hero h1 em{font-style:normal;color:var(--amber-2)}
-.hero .lede{margin:14px 0 0;max-width:540px;font-size:15.5px;line-height:1.55;color:rgba(255,255,255,.82)}
-.ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
-.cta{display:inline-flex;align-items:center;gap:9px;height:44px;padding:0 18px;border-radius:11px;font-weight:600;font-size:14px;text-decoration:none;transition:transform .15s,background .15s,box-shadow .15s}
-.cta .i{width:17px;height:17px}
-.cta.primary{background:var(--amber);color:var(--on-amber);box-shadow:0 8px 22px -10px rgba(219,164,48,.9)}
-.cta.primary:hover{background:var(--amber-2);transform:translateY(-1px)}
-.cta.ghost{color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06)}
-.cta.ghost:hover{background:rgba(255,255,255,.14)}
-.cta:focus-visible{outline:3px solid #fff;outline-offset:2px}
-
-.glance{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:20px 20px 16px;
-  backdrop-filter:blur(10px);box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
-.glance h2{font-size:13px;font-weight:600;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:8px}
-.live{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:11px;font-weight:600;color:#BFE3F5;
-  background:rgba(156,211,238,.14);border:1px solid rgba(156,211,238,.35);border-radius:20px;padding:2px 9px}
-.live i{width:7px;height:7px;border-radius:50%;background:#9CD3EE;box-shadow:0 0 0 0 rgba(156,211,238,.7);animation:lv 2s infinite}
-@keyframes lv{70%{box-shadow:0 0 0 7px rgba(156,211,238,0)}100%{box-shadow:0 0 0 0 rgba(156,211,238,0)}}
-.live.bad{color:#D7DEE6;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}
-.live.bad i{background:#D7DEE6;animation:none}
-.gkpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
-.gk{background:rgba(5,20,36,.28);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 14px}
-.gk .k{font-size:11.5px;color:rgba(255,255,255,.68)}
-.gk .v{font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:3px;font-family:"Segoe UI Variable Display","Segoe UI",sans-serif}
-.gk .f{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
-.gk .v,.gk.npd .v,.gk.ci .v,.gk.rev .v{color:#9CD3EE}
-.gk .stl{display:none!important}
-.gk .stl{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:1px 7px;border-radius:20px;margin-right:5px}
-.gk .stl::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.gk .stl.bad{color:#FF8A80;background:rgba(255,107,107,.16)} .gk .stl.good{color:#7EE2A0;background:rgba(76,199,110,.16)}
-.gfoot{margin-top:12px;font-size:11.5px;color:rgba(255,255,255,.62);display:flex;align-items:center;gap:6px}
-.gfoot .i{width:13px;height:13px}
-.sk{display:inline-block;height:1em;width:5.5em;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.2),rgba(255,255,255,.08));
-  background-size:200% 100%;animation:sk 1.3s linear infinite;vertical-align:middle}
-@keyframes sk{to{background-position:-200% 0}}
 
 /* ---------- sections ---------- */
 main{flex:1}
@@ -160,8 +126,5 @@ footer .sp{margin-left:auto}
   .hero h1{font-size:28px}
   .cards{grid-template-columns:minmax(0,1fr)}
   .about{grid-template-columns:minmax(0,1fr)}
-  .gk .v{font-size:23px}
-  .ctas{flex-direction:column}
-  .cta{justify-content:center}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
