@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 - 2026-10-02
+- Manual-upload route: `/package-dev` and `/package-prod` (tests, strict build, `UPLOAD-STEPS.txt`, opens the folder and the library). The automatic PnP deploy is now optional.
+- The build refuses `CHANGE-ME` site paths when packaging.
+- Team commands work for one person before the OneDrive shared copy exists.
+- Guide covers the 24-hour custom-scripts reset.
+
 ## v1.1.0 - 2026-10-02
 Team workflow (no change to what users see on the pages).
 

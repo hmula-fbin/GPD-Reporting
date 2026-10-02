@@ -26,9 +26,9 @@ Quick reference:
 | Make the change | Describe it in plain English, or `/change <description>` |
 | See it on my PC | Task **Preview (dev, fixture data)**, then open http://localhost:5173 |
 | Save and share it | `/share-change` |
-| Put it on Dev for testing | `/deploy-dev` |
+| Put it on Dev for testing | `/package-dev`, then drag the two `.aspx` files into the Dev library |
 | (Release owner) approve it | `/approve-release change/<name>` |
-| (Release owner) release to Prod | Task **Deploy: dev**, then task **Deploy: prod (asks for confirmation)** |
+| (Release owner) release to Prod | `/package-dev` and upload, then `/package-prod` and drag into the Prod library |
 
 ## Layout
 

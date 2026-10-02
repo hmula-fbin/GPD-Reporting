@@ -5,8 +5,10 @@ Each page reads the pipeline workbook live in the browser through the SharePoint
 
 ## Who you're working with
 Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
-- `/get-latest`, `/start-change`, `/change`, `/share-change` and `/deploy-dev`, for everyone;
-- `/approve-release` and `/release-check`, for the release owner.
+- `/get-latest`, `/start-change`, `/change`, `/share-change` and `/package-dev`, for everyone;
+- `/approve-release`, `/package-prod` and `/release-check`, for the release owner.
+
+Uploading to SharePoint is manual for now: `tools/package.mjs` builds the pages and the user drags them into the library. Custom scripts must be on for the site that day, because SharePoint resets them every 24 hours. `/deploy-dev` (PnP) is only for when `pnpClientId` is set.
 
 The full process is in docs/TEAM-GUIDE.md.
 

@@ -16,7 +16,10 @@ The step-by-step version, with exact Claude commands, is in [TEAM-GUIDE.md](TEAM
   2. Set `"promoteFrom": "test"` in `config/prod.json`.
   3. Deploy to Test with `npm run deploy:test` before Prod.
 
-## Release (release owner)
+## Manual upload (the current way)
+`node tools/package.mjs --env dev|prod` (or `/package-dev`, `/package-prod`) runs the tests, builds the pages, writes `UPLOAD-STEPS.txt`, and opens the folder and the library. Prod packaging has the same gates as the automatic deploy, except the live Dev check: confirm that yourself. Undo with the library's Version history.
+
+## Release (release owner, automatic deploy)
 1. Run `/approve-release change/<name>`. It merges the approved branches, runs the tests, bumps the version, updates the changelog, tags the release and shares it.
 2. Run the task **Deploy: dev**. This puts that exact release on Dev; have a quick look.
 3. Run the task **Deploy: prod (asks for confirmation)** and type `DEPLOY PROD`.

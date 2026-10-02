@@ -36,6 +36,7 @@ const opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i
 const envArg = opt("env", "dev");
 const outRoot = path.resolve(ROOT, opt("out", "dist"));
 const envs = envArg === "all" ? ["dev", "test", "prod"] : [envArg];
+const STRICT = args.includes("--strict"); // used when packaging for upload: placeholders are an error, not a warning
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 const read = (p) => fs.readFileSync(path.join(SRC, p), "utf8");
@@ -155,6 +156,7 @@ for (const env of envs) {
     manifest.files.push({ name: pg.out, bytes: Buffer.byteLength(out) });
   }
   fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+  if (/CHANGE-ME/i.test(cfg.sitePath) && STRICT) fail("config/" + env + ".json still has a CHANGE-ME site path. Put the real site in before uploading.");
   if (/CHANGE-ME/i.test(cfg.sitePath)) console.warn("WARNING " + env + ": config still has a CHANGE-ME site path - fill in config/" + env + ".json before deploying.");
   console.log("built " + env.padEnd(4) + " v" + pkg.version + " " + COMMIT + " -> " + path.relative(ROOT, dir) + "  (" + manifest.files.map((f) => f.name + " " + (f.bytes / 1024).toFixed(0) + " KB").join(", ") + ")");
 }

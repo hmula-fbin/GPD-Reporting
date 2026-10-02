@@ -10,4 +10,4 @@ Follow CLAUDE.md. Specifically:
 4. Run `node build/build.mjs --env all` and `npm test`. Fix anything that fails.
 5. If it is a new requirement, add or extend a test in tests/ that proves it.
 6. Tell the user how to look at it: `npm run preview` then open http://localhost:5173 (or the VS Code task "Preview (dev, fixture data)").
-7. Finish with: what changed (plain words, then files), test result, and "When you're happy, run /share-change, then /deploy-dev to put it on Dev for testing." Do not commit or deploy yourself.
+7. Finish with: what changed (plain words, then files), test result, and "When you're happy, run /share-change, then /package-dev and drag the two files into the Dev site for testing." Do not commit or deploy yourself.

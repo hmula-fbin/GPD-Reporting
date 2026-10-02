@@ -2,6 +2,13 @@
 
 This guide assumes you have never used VS Code, git or Claude Code before.
 
+**How we work for now.**
+
+- Changes are made in **VS Code with Claude Code**.
+- The pages are built as **.aspx files** and **uploaded by hand**: you drag the two files into the SharePoint library.
+- The automatic deploy (Part G) is optional and can come later, once IT approves the sign-in app.
+- Working alone at first? Do Part A steps A1–A6, then Parts C and D. Do A7 (the OneDrive shared copy) and Part B when teammates join.
+
 ## The big picture
 
 ```
@@ -75,25 +82,20 @@ Everyone who opens the pages also needs Read on the `Report Files` library of th
    ```
    You should see "passed" and no "failed".
 
-**A5. Connect to SharePoint (IT may be needed).**
+**A5. Tell the project where Prod is.** Tell Claude:
 
-1. In the terminal, run:
-   ```powershell
-   pwsh -ExecutionPolicy Bypass -File .\deploy\Setup-PnPApp.ps1 -Tenant fbinportal.onmicrosoft.com
-   ```
-2. It prints a **Client ID**. If it says admin consent is required, send the message to IT.
-3. Tell Claude: *"Put client ID xxxx in all three config files. Set the prod sitePath to /sites/<prod site name>."*
+*"Set the prod sitePath in config/prod.json to /sites/<prod site name> and commit it with message 'Set prod site'."*
 
-**A6. Ask the SharePoint admin for these:**
+Dev is already set to `/sites/gpdsbx`. Until Prod is set, the Prod build refuses to run, so nothing can be uploaded to the wrong place.
 
-- Allow custom scripts on the Dev and Prod sites. Without this, `.aspx` pages download instead of opening.
+**A6. Agree these with the SharePoint admin:**
+
+- **Custom scripts.** Microsoft now switches custom scripts **off every 24 hours**. Pages you've already uploaded keep working, but uploading a new or replaced `.aspx` needs custom scripts **on that day**. Agree how you'll ask, for example a short Teams message on upload days.
 - Give team members **Edit** on Dev's `Shared Documents`.
 - Give only yourself **Edit** on Prod's `Shared Documents`.
 - Give everyone **Read** on the pages and on `Report Files`.
 
-**A7. Save the setup.** Tell Claude: *"Commit the config changes with message 'Team setup'."*
-
-**A8. Create the team's shared copy in OneDrive.**
+**A7. Create the team's shared copy in OneDrive** (when teammates join).
 
 1. In File Explorer, open your OneDrive (*OneDrive – Fortune Brands*) and create a folder called `GPD Portfolio Hub (Team)`.
 2. In the VS Code terminal, run:
@@ -149,14 +151,15 @@ Type these into the **Claude panel** (Spark icon). Text in *italics* is an examp
 | 5 | Look at it on your own PC | **Terminal → Run Task… → Preview (dev, fixture data)**, then open http://localhost:5173 |
 | 6 | Not happy? Say what to adjust and repeat 4–5 | *Make the heading smaller and put it on one line on phones* |
 | 7 | Happy: save and share it | `/share-change` |
-| 8 | Put it on Dev for the requester | `/deploy-dev`. A Microsoft sign-in window opens; complete it. Claude gives you the Dev links and a Teams message to send |
-| 9a | Requester says it needs changes | Go back to step 3. You are still on the same change |
-| 9b | Requester says OK | Message the release owner: *"change/greeting-wording is approved on Dev"* |
+| 8 | Build the Dev pages | `/package-dev`, or **Run Task… → Upload: package Dev pages**. It runs the tests, builds the pages, and opens both the folder and the Dev library |
+| 9 | Upload them to Dev | Check custom scripts are on today. Drag `Home.aspx` and `Portfolio_Scorecard.aspx` into the library and choose **Replace**. Open both links to check. Claude writes the Teams message for the requester |
+| 10a | Requester says it needs changes | Go back to step 3. You are still on the same change |
+| 10b | Requester says OK | Message the release owner: *"change/greeting-wording is approved on Dev"* |
 
 Notes:
 
 - The preview uses made-up sample data, so the numbers are not real. To preview with a real extract, put the file in the project's `data` folder and run the task **Preview (dev, real extract in data/)**. That folder is never shared.
-- Claude will not deploy to Prod, force-push or delete work. It asks before it commits, pushes or deploys to Dev.
+- Claude will not deploy to Prod, force-push or delete work. It asks before it commits or pushes. Uploading to SharePoint is always done by you.
 - If you get lost, ask Claude in plain words: *"What state is my project in? What should I do next?"*
 
 ---
@@ -165,25 +168,19 @@ Notes:
 
 | # | Do | How |
 |---|---|---|
-| 1 | Get the approved change into the main version | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, and shares it |
-| 2 | Put that exact release on Dev | **Terminal → Run Task… → Deploy: dev**. Have a quick look |
-| 3 | Check it's ready | `/release-check` (optional) |
-| 4 | Publish | **Run Task… → Deploy: prod (asks for confirmation)**, then type `DEPLOY PROD` |
-| 5 | Smoke test on Prod | Open Home and the Scorecard, press Refresh now, and ask one question |
+| 1 | Get the approved change into the main version | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, and saves it |
+| 2 | Put that exact release on Dev | `/package-dev`, then drag both files into the Dev library and have a quick look |
+| 3 | Build the Prod pages | `/package-prod`, or **Run Task… → Upload: package Prod pages (release owner)**. It refuses unless you're the release owner, on the main version, with everything saved and tagged, and the tests pass |
+| 4 | Upload to Prod | Check custom scripts are on today for the Prod site. Drag both files into the Prod library and choose **Replace** |
+| 5 | Smoke test on Prod | Open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
 
-The Prod deploy **refuses** unless all of these are true:
+**To undo a release:**
 
-- you're a release owner;
-- you're on the main branch with everything saved;
-- the version is tagged;
-- the *same* version is live on Dev;
-- all tests pass.
+1. In the SharePoint library, click **…** next to the file and choose **Version history**.
+2. Restore the previous version.
+3. Do this for both files.
 
-It also backs up what was on Prod first. If something is wrong, roll back:
-
-```powershell
-pwsh -ExecutionPolicy Bypass -File .\deploy\Deploy-Portfolio.ps1 -Env prod -Rollback <backup id printed by the deploy>
-```
+Every build also writes `UPLOAD-STEPS.txt` next to the pages, with the exact links.
 
 ---
 
@@ -192,7 +189,7 @@ pwsh -ExecutionPolicy Bypass -File .\deploy\Deploy-Portfolio.ps1 -Env prod -Roll
 1. **Never open, edit or move anything inside the shared OneDrive folder.** Work only in `C:\dev\gpd-portfolio-hub`.
 2. **Wait for the OneDrive green tick** before `/share-change` and before `/get-latest`.
 3. **One person shares at a time.** Post "sharing now" in the team chat, and "done" after.
-4. **Dev shows one change at a time.** Say in the chat before you `/deploy-dev`, so you don't overwrite someone's test.
+4. **Dev shows one change at a time.** Say in the chat before you upload to Dev, so you don't overwrite someone's test.
 5. Run `/get-latest` every morning, and one change per `/start-change`. Small changes are easier to test and approve.
 6. Never put real data files in git. They stay in `data/`, which is ignored.
 
@@ -216,6 +213,24 @@ After the move, "approved" becomes a **pull request** on GitHub. The requester o
 
 ---
 
+## Part G: automatic deploy (optional, later)
+
+When IT approves a sign-in app, the upload can be done for you. You also get a backup before every upload, and a Prod check that the same version is live on Dev.
+
+1. In the terminal, run:
+   ```powershell
+   pwsh -ExecutionPolicy Bypass -File .\deploy\Setup-PnPApp.ps1 -Tenant fbinportal.onmicrosoft.com
+   ```
+   It prints a **Client ID**. If it says admin consent is needed, send that to IT.
+2. Tell Claude: *"Put client ID xxxx in all three config files and commit it."*
+3. From then on:
+   - for Dev, use `/deploy-dev` instead of `/package-dev` plus dragging;
+   - for Prod, use the task **Deploy: prod (automatic, needs PnP app)** instead of `/package-prod` plus dragging.
+
+Custom scripts still need to be on for the site that day.
+
+---
+
 ## Troubleshooting
 
 | You see | Do |
@@ -225,8 +240,9 @@ After the move, "approved" becomes a **pull request** on GitHub. The requester o
 | "Tests failed – nothing was deployed" | Tell Claude: *"The tests failed, please fix them"* |
 | "Can't find the shared copy" | The OneDrive shortcut is missing or not synced. Check for the green tick and *Always keep on this device* |
 | "rejected – non-fast-forward" when sharing | Someone shared first. Run `/get-latest`, then `/share-change` again |
-| `.aspx` page downloads instead of opening | The site doesn't allow custom scripts. Ask the SharePoint admin (Part A, A6) |
-| Prod deploy says Dev has a different version | Run **Deploy: dev** from main first (Part D, step 2) |
+| The upload is refused, or the `.aspx` page downloads instead of opening | Custom scripts are off for that site today; they switch off every 24 hours. Ask the SharePoint admin to turn them on, then upload again (Part A, A6) |
+| `/package-prod` refuses | Do what it says. Usually you need to run `/approve-release` first, or save (commit) your changes |
+| Build says "CHANGE-ME site path" | Set the real site in the config (Part A, A5) |
 | The page shows an error instead of figures | You don't have Read on `Report Files`, or the data file has moved |
 
 ## Words you'll see

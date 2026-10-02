@@ -49,13 +49,33 @@
       "problemMatcher": []
     },
     {
-      "label": "Deploy: dev",
+      "label": "Upload: package Dev pages",
+      "type": "shell",
+      "command": "node tools/package.mjs --env dev",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true
+      }
+    },
+    {
+      "label": "Upload: package Prod pages (release owner)",
+      "type": "shell",
+      "command": "node tools/package.mjs --env prod",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true
+      }
+    },
+    {
+      "label": "Deploy: dev (automatic, needs PnP app)",
       "type": "shell",
       "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev",
       "problemMatcher": []
     },
     {
-      "label": "Deploy: prod (asks for confirmation)",
+      "label": "Deploy: prod (automatic, needs PnP app)",
       "type": "shell",
       "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env prod",
       "problemMatcher": [],

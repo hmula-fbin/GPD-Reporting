@@ -12,14 +12,16 @@
       "Bash(git fetch:*)",
       "Bash(git branch:*)",
       "Bash(git switch:*)",
-      "Bash(git pull origin main)"
+      "Bash(git pull origin main)",
+      "Bash(node tools/package.mjs --env dev:*)"
     ],
     "ask": [
       "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(git merge:*)",
       "Bash(git tag:*)",
-      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev:*)"
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev:*)",
+      "Bash(node tools/package.mjs --env prod:*)"
     ],
     "deny": [
       "Bash(*Deploy-Portfolio.ps1*prod*)",

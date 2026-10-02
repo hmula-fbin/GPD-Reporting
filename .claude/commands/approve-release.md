@@ -10,8 +10,9 @@ Prepare a release from the approved change branch: $ARGUMENTS
 4. Ask: is this a fix (patch) or a new feature (minor)? Bump `version` in package.json accordingly.
 5. Add a CHANGELOG.md entry at the top for the new version (today's date, plain-English bullets of what users will notice).
 6. `git commit -am "Release v<version>"` and `git tag -a v<version> -m "Release v<version>"`.
-7. `git push origin main --follow-tags`.
+7. If there is an `origin`, run `git push origin main --follow-tags`.
 8. Tell the release owner the next two steps, which they run themselves:
-   a) VS Code task "Deploy: dev" (puts this exact release on Dev - the Prod deploy checks for it), quick look on Dev;
-   b) VS Code task "Deploy: prod (asks for confirmation)" and type DEPLOY PROD.
+   a) /package-dev, then drag both files into the Dev library. This puts this exact release on Dev; take a quick look;
+   b) /package-prod, then drag both files into the Prod library (custom scripts must be on that day).
+   If the automatic deploy is set up (pnpClientId filled in), the tasks "Deploy: dev" and "Deploy: prod" do the uploads instead.
 Never run the prod deploy yourself.

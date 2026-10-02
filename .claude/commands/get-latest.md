@@ -3,6 +3,7 @@ description: Get the team's latest version (start of every working session)
 ---
 Bring this working copy up to date with the team's shared copy. Explain each step in plain words, the user is new to git.
 
+0. If `git remote` shows no `origin`, the user is working alone (no shared copy yet). Say so, skip the fetch/pull steps, and just run step 6.
 1. Run `git status`. If there are uncommitted changes, STOP and ask whether to save them first (/share-change) or set them aside (`git stash`). Never discard them.
 2. Remember the current branch. `git fetch origin --prune --tags`.
 3. `git switch main` then `git pull origin main`.
