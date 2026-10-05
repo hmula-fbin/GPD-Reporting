@@ -68,3 +68,11 @@ test("pages say FBIN R&D, never GPD, and the scorecard title is in title case", 
   }
   await expect(page.locator("h1").first()).toHaveText("Innovation & CI Portfolio Scorecard");
 });
+
+test("both pages show the report icon in the browser tab", async ({ page }) => {
+  for (const url of [HOME, SCORE]) {
+    await open(page, url);
+    const href = await page.locator('link[rel="icon"]').getAttribute("href");
+    expect(href).toMatch(/^data:image\/svg\+xml;base64,/);
+  }
+});
