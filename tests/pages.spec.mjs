@@ -57,3 +57,14 @@ test("Home is clean: no glance panel, no intro text, no scorecard button in the 
   await expect(page.locator(".hero a")).toHaveCount(0);
   await expect(page.locator('.card[href$="Portfolio_Scorecard.aspx"]')).toBeVisible();
 });
+
+test("pages say FBIN R&D, never GPD, and the scorecard title is in title case", async ({ page }) => {
+  for (const url of [HOME, SCORE]) {
+    await open(page, url);
+    const text = await page.locator("body").innerText();
+    expect(text).not.toMatch(/\bGPD\b/);
+    await expect(page.locator(".appbrand .nm")).toHaveText("FBIN R&D Portfolio Hub");
+    expect(await page.title()).not.toMatch(/\bGPD\b/);
+  }
+  await expect(page.locator("h1").first()).toHaveText("Innovation & CI Portfolio Scorecard");
+});
