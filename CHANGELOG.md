@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.1 - 2026-10-05
+- The hub is now called "FBIN R&D Portfolio Hub" (it was "GPD Portfolio Hub"), in the app bar, menu and browser tab.
+- Home and the scorecard say "FBIN R&D" where they said "GPD", including "Contact the FBIN R&D PPM team" in the footer and help messages, and in the assistant's answers.
+- The scorecard heading reads "Innovation & CI Portfolio Scorecard" (title case), on the page and in the Excel export.
+
 ## v1.3.0 - 2026-10-02
 - Home is cleaner: the "Portfolio at a glance" panel, the intro sentence and the "Open Portfolio Score Card" button are gone. The footer shows when the data was last refreshed.
 - Scorecard: new Phase filter, right above Project Status, opening on the Active Phase.
