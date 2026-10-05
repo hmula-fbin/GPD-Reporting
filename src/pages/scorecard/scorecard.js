@@ -1,5 +1,5 @@
 /* ============================================================
-   Innovation & CI portfolio scorecard
+   Innovation & CI Portfolio Scorecard
    Source of truth: the PIPELINE tab of the uploaded workbook.
    Metric logic mirrors the Summary 1 sheet exactly:
      in-view  = BU is text  AND  Include matches the filter  AND  all dimension filters pass
@@ -388,7 +388,7 @@ function expContext(){
     if ((f[k]||[]).length) on.push(FLABEL[k]+" = "+f[k].map(optText).join(" | "));
   });
   return [
-    ["Innovation & CI portfolio scorecard"],
+    ["Innovation & CI Portfolio Scorecard"],
     ["View", S.tab==="trend" ? "Month-over-month trend" : "Scorecard"],
     ["Data updated", S.meta && S.meta.sourceModified ? new Date(S.meta.sourceModified).toLocaleString("en-US") : ""],
     ["Downloaded", new Date().toLocaleString("en-US")],
@@ -1232,11 +1232,11 @@ async function reloadData(){
       fetch(base + "?$select=TimeLastModified", {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}}).catch(()=>null),
       fetch(base + "/$value", {credentials:"include", cache:"no-store"})
     ]);
-    if (bin.status===401 || bin.status===403) throw new Error("You don\u2019t have access to the portfolio data. Ask the GPD PPM team for access.");
-    if (!bin.ok) throw new Error("Please try again in a minute. If it keeps happening, contact the GPD PPM team.");
+    if (bin.status===401 || bin.status===403) throw new Error("You don\u2019t have access to the portfolio data. Ask the FBIN R&D PPM team for access.");
+    if (!bin.ok) throw new Error("Please try again in a minute. If it keeps happening, contact the FBIN R&D PPM team.");
     let parsed;
     try{ parsed = parseWorkbook(await bin.arrayBuffer(), name); }
-    catch(pe){ console.error(pe); throw new Error("The portfolio data couldn\u2019t be read. Contact the GPD PPM team."); }
+    catch(pe){ console.error(pe); throw new Error("The portfolio data couldn\u2019t be read. Contact the FBIN R&D PPM team."); }
     let modified = null;
     if (info && info.ok){ try{ modified = (await info.json()).TimeLastModified; }catch(e){} }
     S.rows = parsed.rows; S.present = parsed.present; S.meta = parsed.meta;

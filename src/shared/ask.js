@@ -350,7 +350,7 @@
   }
   function context(){ var d=data(); if(!d) return ""; var rs=d.rows, s=summary(d,rs,[]).html.replace(/<li>/g,"\n- ").replace(/<[^>]+>/g,"").replace(/[ \t]+/g," ");
     var top=rs.filter(function(r){ return r.ns; }).sort(function(a,b){ return b.ns-a.ns; }).slice(0,15).map(function(r){ return "- "+r.name+" | "+(r.bucket||"-")+" | "+(r._st||"-")+" | owner "+(r.owner||"-")+" | NS "+money(r.ns)+" | CM "+money(r.cm)+" | forecast "+mo(r.fc)+" vs target "+mo(r.tgt); });
-    return "Data from our GPD Portfolio Hub page ("+d.scope+"):\n"+s.trim()+"\n\nLargest projects by annualized net sales:\n"+top.join("\n"); }
+    return "Data from our FBIN R&D Portfolio Hub page ("+d.scope+"):\n"+s.trim()+"\n\nLargest projects by annualized net sales:\n"+top.join("\n"); }
   $("askM365").onclick=function(){
     var convo = log.length ? "\n\nOur conversation so far:\n"+log.map(function(x){ return "Q: "+x.q+"\nA: "+x.a; }).join("\n") : "";
     var p=copy(context()+convo+"\n\nPlease help me with follow-up questions about this data.");
