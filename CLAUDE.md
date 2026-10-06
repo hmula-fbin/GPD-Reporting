@@ -53,6 +53,7 @@ The full process is in docs/TEAM-GUIDE.md.
 | Home logic: greeting, headline figures | `src/pages/home/home.js` |
 | Copilot over every data file (any column, any filter) | `src/shared/explore.js` |
 | Resizable table columns on every page (drag a heading edge; double-click resets) | `src/shared/tables.js` |
+| Responsive layout: breakpoints in `src/shared/shell.css`; filters fold into a "Filters" button below 1100px | `src/shared/responsive.js` |
 | Data Quality: column names, thresholds, the 21 rules, filters, exports, daily tracking | `src/pages/dq/dq.js` (+ `dq.html`, `dq.css`) |
 | Build | `build/build.mjs` |
 | Local preview server | `tools/serve.mjs` |

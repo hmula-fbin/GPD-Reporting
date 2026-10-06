@@ -123,3 +123,43 @@ table.rz-fixed th,table.rz-fixed td{overflow:hidden;text-overflow:ellipsis}
   background:linear-gradient(135deg,transparent 0 50%,var(--ink-3) 50% 57%,transparent 57% 68%,var(--ink-3) 68% 75%,transparent 75% 86%,var(--ink-3) 86% 93%,transparent 93%)}
 .boxgrip:hover{opacity:1}
 @media print{.boxgrip,.colgrip{display:none}}
+
+/* ===================== Responsive: phones, tablets, laptops, desktops =====================
+   Breakpoints follow common device classes: <=560 phone, <=767 large phone, <=1099 tablet / small
+   laptop (filters fold away), >=1100 laptop / desktop (filters in the left panel), up to 1920 wide. */
+.railtoggle{display:none}
+@media (max-width:1099px){
+  .railtoggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 16px;border:0;border-bottom:1px solid var(--rule);
+    background:var(--panel);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;text-align:left}
+  .railtoggle .i{width:17px;height:17px;flex:none}
+  .railtoggle .railcount{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--kpi,var(--steel));color:var(--panel);font-size:11px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .railtoggle .railcount[hidden]{display:none}
+  .railtoggle .railview{margin-left:auto;font-weight:500;font-size:12px;color:var(--ink-3)}
+  .railtoggle .chev{transition:transform .15s}
+  .rail.open .railtoggle .chev{transform:rotate(180deg)}
+  .railtoggle:focus-visible{outline:2px solid var(--steel);outline-offset:-2px}
+  .rail:not(.open) #railInner{display:none}
+  .rail{position:static}
+}
+/* the app bar: drop the breadcrumb before anything collides */
+@media (max-width:1023px){ .crumbs{display:none} }
+/* phones: masthead buttons share the width two by two; inputs at 16px so the phone does not zoom */
+@media (max-width:560px){
+  .mast-right{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-left:0}
+  .mast-right .btn{justify-content:center;min-width:0}
+  .mast-right .btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .masthead h1{font-size:22px!important}
+}
+@media (max-width:767px){ input,select,textarea{font-size:16px!important} }
+/* section titles: on small screens the note goes on its own line under the title */
+@media (max-width:767px){ .shead{flex-wrap:wrap;row-gap:4px} .shead .sub{flex-basis:100%;order:3} .shead .act{margin-left:auto} }
+/* touch screens: controls at least 40px tall */
+@media (pointer:coarse){
+  .btn,.msbtn,.fld select,.fld input,.seg button,.tab,.expbtn{min-height:40px}
+  .msopt{min-height:36px}
+}
+/* big screens: use the width, up to 1920px */
+@media (min-width:1100px){
+  .masthead .wrap,footer.wrap,.appbar-in,.layout{max-width:1920px!important}
+}
