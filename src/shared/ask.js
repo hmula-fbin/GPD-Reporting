@@ -348,13 +348,16 @@
      question - another file, an explicit filter ("where Brand is Moen"), or a column named exactly - goes
      to the explorer, which reads every data file. */
   function answerAll(q){
-    var a; try{ a=answer(q); }catch(e){ console.error(e); a={html:"<p>Something went wrong working that out. Try rephrasing.</p>", none:true}; }
-    var X=window.gpdExplore; if(!X) return Promise.resolve(a);
+    var safe=function(x){ try{ return answer(x); }catch(e){ console.error(e); return {html:"<p>Something went wrong working that out. Try rephrasing.</p>", none:true}; } };
+    var X=window.gpdExplore; if(!X) return Promise.resolve(safe(q));
     return X.load().then(function(){
-      var g=null; try{ g=X.answer(q); }catch(e){ console.error(e); }
-      if(g && !g.none && (a.none || a.nodata || !g.pipeline || g.strong)) return g;
-      return a;
-    }, function(){ return a; });
+      /* auto-correct against the words in the data first ("road map" -> Roadmap), then answer */
+      var c=q; try{ c=X.correct(q); }catch(e){ console.error(e); }
+      var a=safe(c), g=null; try{ g=X.answer(c); }catch(e){ console.error(e); }
+      var r = (g && !g.none && (a.none || a.nodata || !g.pipeline || g.strong)) ? g : a;
+      if(c!==q) r=Object.assign({}, r, {html:'<div class="src">Showing results for: <b>'+esc(c)+'</b></div>'+r.html, corrected:c});
+      return r;
+    }, function(){ return safe(q); });
   }
   function copy(text){
     function fb(){ var ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} ta.remove(); return ok; }

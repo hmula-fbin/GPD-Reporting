@@ -103,3 +103,46 @@ test("Copilot pulls any column for one project by its number, even written as 1s
   expect(a.html).toContain("DC First Ship 2 Date");
   expect(a.html).toContain(when);
 });
+
+test("Copilot understands abbreviations and loosely named columns, and learns new terms", async ({ page }) => {
+  await open(page, HOME);
+  const top = PROJ.slice().sort((a, b) => (b.NPV || 0) - (a.NPV || 0))[0];
+  let a = await ask(page, "Show me PMF for top 10 Projects in NPV");
+  expect(a.ds).toBe("Project");
+  expect(a.html).toContain("Project Management Flag");
+  expect(a.html).toContain(top.ProjectName);
+  a = await ask(page, "Show me DC First Ship 1 Date for the Project 7001.");
+  expect(a.html).toContain(PROJ.find((r) => r.ProjectID === 7001).ProjectName);
+  expect(a.html).toContain("DC First Ship 1 Date");
+  a = await ask(page, "what is the ship date for project 7001");
+  expect(a.html).toContain("DC First Ship 1 Date");
+  expect(a.html).toContain("DC First Ship 2 Date");
+  a = await ask(page, "XQV means NPV");
+  expect(a.html).toContain("Got it");
+  a = await ask(page, "top 3 projects by XQV");
+  expect(a.html).toContain(top.ProjectName);
+});
+
+test("Copilot auto-corrects spacing and small typos against the words in the data", async ({ page }) => {
+  await open(page, HOME);
+  const right = await page.evaluate(() => window.gpdAsk.answerAll("Give me roadmap projects").then((a) => a.val));
+  const spaced = await page.evaluate(() => window.gpdAsk.answerAll("Give me road map projects.").then((a) => ({ val: a.val, c: a.corrected, html: a.html })));
+  expect(spaced.c).toMatch(/Roadmap/);
+  expect(spaced.val).toBe(right);
+  expect(spaced.html).toContain("Showing results for");
+  const typo = await page.evaluate(() => window.gpdAsk.answerAll("how many projects in Devlop").then((a) => ({ val: a.val, c: a.corrected })));
+  const exact = await page.evaluate(() => window.gpdAsk.answerAll("how many projects in Develop").then((a) => a.val));
+  expect(typo.c).toMatch(/Develop/);
+  expect(typo.val).toBe(exact);
+  const plain = await page.evaluate(() => window.gpdAsk.answerAll("Summarize the portfolio").then((a) => a.corrected || null));
+  expect(plain).toBe(null);
+});
+
+test("Copilot splits joined words and fixes misspelt column names", async ({ page }) => {
+  await open(page, HOME);
+  const a = await page.evaluate(() => window.gpdAsk.answerAll("projects onhold").then((a) => a.corrected));
+  expect(a).toMatch(/On Hold/);
+  const b = await page.evaluate(() => window.gpdAsk.answerAll("Projct Managment Flag for 7001").then((a) => ({ c: a.corrected, html: a.html })));
+  expect(b.c).toMatch(/Management Flag/);
+  expect(b.html).toContain("Project Management Flag:");
+});

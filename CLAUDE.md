@@ -65,6 +65,6 @@ The full process is in docs/TEAM-GUIDE.md.
 - The parser finds a sheet named PIPELINE (or one whose header row has "Project Name" and "Project Bucket (NEW)"). The header row is found within the first 30 rows.
 - The columns used are in `FIELD_MAP` in `scorecard.js`. Every Scorecard table also shows Capital Investment and Product Development Investment (labelled "PD Investment"). Home has its own small parser in `home.js`; keep the two consistent.
 - NPD = Grow the Core + Refresh & Sustain + Create & Transform. CI and CRQ are reported separately.
-- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months), `fbin_dq_snaps_v1` (Data Quality daily tracking, 400 days), `fbin_colwidths` (each person's column widths).
+- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months), `fbin_dq_snaps_v1` (Data Quality daily tracking, 400 days), `fbin_tablesizes_v2` (each person's table and column sizes), `fbin_copilot_terms` (terms each person taught the Copilot, e.g. "PMF means Project Management Flag").
 - Data Quality filters are all multi-select. Status sits above Phase there (the Scorecard keeps Phase above Status).
 - Data Quality reads `projectFileName` and `resourceFileName` from `config/<env>.json`. Column names are in `PROJECT_COLS` / `RESOURCE_COLS` at the top of `dq.js`; a rule whose column is missing switches itself off and the page says so.

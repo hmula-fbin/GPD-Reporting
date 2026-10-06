@@ -16,12 +16,15 @@
   var SHOW = 25;   /* rows shown in the chat; the Excel download has them all */
 
   /* ---------- text helpers ---------- */
-  function nk(s){ return String(s == null ? "" : s).replace(/\s+/g, " ").trim(); }
+  function nk(s){ return String(s == null ? "" : s).replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&#39;|&apos;/gi, "'").replace(/&quot;/gi, '"').replace(/\s+/g, " ").trim(); }
   /* "ProjectOwnerName" / "Contribution Margin Dollars_New" -> "project owner name" / "contribution margin dollars new" */
-  function ord(s){ return s.replace(/\b1st\b/g, "first").replace(/\b2nd\b/g, "second").replace(/\b3rd\b/g, "third").replace(/\b(\d+)th\b/g, "$1").replace(/#/g, " number "); }
+  function ord(s){ return s.replace(/\b1st\b/g, "first").replace(/\b2nd\b/g, "second").replace(/\b3rd\b/g, "third").replace(/\b(\d+)th\b/g, "$1").replace(/#/g, " number ")
+    /* common short forms in column names and questions read as the full word */
+    .replace(/\bmgr\b/g, "manager").replace(/\bmktg\b/g, "marketing").replace(/\bdept\b/g, "department").replace(/\bqty\b/g, "quantity")
+    .replace(/\bamt\b/g, "amount").replace(/\bdesc\b/g, "description").replace(/\bpct\b/g, "percent").replace(/\bno\b(?=\s*\d|$)/g, "number"); }
   function words(s){ return ord(nk(s).replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()).replace(/[^a-z0-9%$.]+/g, " ").replace(/\s+/g, " ").trim(); }
   /* the question, lower-cased, camelCase split, comparison signs kept as their own words */
-  function qwords(s){ return " " + ord(nk(s).replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()).replace(/(>=|<=|!=|<>|>|<|=)/g, " $1 ").replace(/[^a-z0-9%$.,<>=!]+/g, " ").replace(/,(?=\s|$)/g, " , ").replace(/\s+/g, " ").trim() + " "; }
+  function qwords(s){ return " " + ord(nk(s).replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()).replace(/(>=|<=|!=|<>|>|<|=)/g, " $1 ").replace(/[^a-z0-9%$.,<>=!]+/g, " ").replace(/,(?=\s|$)/g, " , ").replace(/\.(?=\s|$)/g, " ").replace(/\s+/g, " ").trim() + " "; }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   function num(v){ if (v === null || v === undefined || v === "") return null; if (typeof v === "number") return isFinite(v) ? v : null;
     var t = String(v).trim().toLowerCase().replace(/[$,\s]/g, ""), m = /^(-?\d+(?:\.\d+)?)(k|m|mm|b|bn|%)?$/.exec(t);
@@ -106,6 +109,7 @@
           .catch(function(){ return null; });
       }));
     }).then(function(list){
+      VOCAB = null;
       DS = list.filter(Boolean).sort(function(a, b){ return (b.isPipeline ? 1 : 0) - (a.isPipeline ? 1 : 0); });
       return DS;
     });
@@ -140,7 +144,123 @@
         }
       });
     });
+    var addSpan = function(c, s0, e0){ if (!taken.some(function(t){ return s0 < t[1] && e0 > t[0]; }) && !hits.some(function(h){ return h.col === c; })){ hits.push({col:c, s:s0, e:e0}); taken.push([s0, e0]); } };
+    Object.keys(ALIAS).forEach(function(term){
+      var c = ds.cols.filter(function(x){ return x.name === ALIAS[term]; })[0]; if (!c) return;
+      var at = ql.indexOf(" " + term + " "); if (at > -1) addSpan(c, at + 1, at + 1 + term.length);
+    });
+    var acr = {};
+    ds.cols.forEach(function(c){ var ws = c.w.split(" ").filter(function(x){ return /^[a-z]/.test(x); }); if (ws.length < 2) return;
+      var a = ws.map(function(x){ return x[0]; }).join(""); (acr[a] = acr[a] || []).push(c); });
+    Object.keys(acr).forEach(function(a){
+      if (acr[a].length !== 1 || a.length < 2 || STOP[a] || COMMAND[a]) return;
+      var at = ql.indexOf(" " + a + " "); if (at > -1) addSpan(acr[a][0], at + 1, at + 1 + a.length);
+    });
     return hits.sort(function(a, b){ return a.s - b.s; });
+  }
+  /* ---------- learning: "PMF means Project Management Flag" ----------
+     Terms are remembered in this browser and used in every later question. */
+  var ALIAS_KEY = "fbin_copilot_terms", ALIAS = {};
+  try{ ALIAS = JSON.parse(localStorage.getItem(ALIAS_KEY) || "{}") || {}; }catch(e){ ALIAS = {}; }
+  function teach(q){
+    var m = /^\s*(?:please\s+)?(?:remember(?: that)?|note(?: that)?|learn(?: that)?|fyi)?\s*["']?(.+?)["']?\s+(?:means|=|is short for|stands for|is the same as|refers to)\s+["']?(.+?)["']?\s*[.!]?\s*$/i.exec(q);
+    if (!m || m[1].split(/\s+/).length > 5) return null;
+    var term = words(m[1]), target = nk(m[2]), hit = null;
+    (DS || []).forEach(function(ds){ ds.cols.forEach(function(c){ if (!hit && c.w === words(target)) hit = c.name; }); });
+    if (!hit){ var best = null; (DS || []).forEach(function(ds){ fuzzyCols(" " + words(target) + " ", ds, []).forEach(function(c){ if (!best) best = c.name; }); }); hit = best; }
+    if (!hit) return {html:'<p>I couldn’t find a column called “' + esc(target) + '” in any of the data.</p>', strong:true, pipeline:false};
+    ALIAS[term] = hit; try{ localStorage.setItem(ALIAS_KEY, JSON.stringify(ALIAS)); }catch(e){}
+    return {html:'<p>Got it — from now on <b>' + esc(m[1]) + '</b> means <b>' + esc(hit) + '</b>.</p>', strong:true, pipeline:false, learned:hit};
+  }
+  /* words that say what to do, or are too common to identify a column */
+  var COMMAND = {"show":1,"me":1,"give":1,"list":1,"find":1,"get":1,"display":1,"what":1,"which":1,"who":1,"whose":1,"is":1,"are":1,"was":1,"were":1,"the":1,"a":1,"an":1,"for":1,"of":1,"in":1,"on":1,"by":1,"per":1,"and":1,"or":1,"with":1,"where":1,"top":1,"bottom":1,"all":1,"each":1,"how":1,"many":1,"much":1,"total":1,"sum":1,"average":1,"projects":1,"project":1,"records":1,"record":1,"please":1,"tell":1,"about":1,"to":1,"from":1,"there":1,"have":1,"has":1,"do":1,"does":1,"data":1,"file":1,"people":1,"person":1,"their":1,"its":1,"it":1,"this":1,"that":1,"these":1,"those":1,"i":1,"we":1,"my":1,"our":1,"can":1,"you":1,"value":1,"values":1};
+  /* fields the page's own portfolio engine already understands; a loose match on these leaves the question to it */
+  var PAGE_TERMS = / (net sales|ns|sales|revenue|margin|cm|contribution|investment|capital|capex|opex|spend|budget|cost|months|time|bucket|stage|business|brand|market|owner|status|finish) /;
+  var GENERIC = {"date":1,"name":1,"total":1,"number":1,"project":1,"id":1,"code":1,"type":1,"status":1,"value":1,"amount":1,"count":1,"percent":1,"new":1,"dollars":1,"description":1};
+  /* columns named loosely: "ship date", "1st ship date", "SC ship date" -> every DC First Ship N Date */
+  function fuzzyCols(qs, ds, already){
+    var Q = qs.trim().split(/\s+/).filter(function(t){ return t && !COMMAND[t] && !/^\d{3,}$/.test(t); });
+    if (!Q.length) return [];
+    var scored = [];
+    ds.cols.forEach(function(c){
+      if (already.indexOf(c) > -1) return;
+      var W = c.w.split(" ").filter(function(x){ return x && !COMMAND[x] && x !== "name"; });   /* "ProjectOwnerName" ~ "owner" */
+      if (!W.length) return;
+      var hit = W.filter(function(x){ return Q.indexOf(x) > -1; });
+      var distinct = hit.filter(function(x){ return !GENERIC[x] && !/^\d+$/.test(x); });
+      if (!distinct.length) return;
+      if (hit.length < 2 && hit.length / W.length < 0.6) return;
+      scored.push({c:c, s:hit.length + hit.length / W.length});
+    });
+    if (!scored.length) return [];
+    var top = Math.max.apply(null, scored.map(function(x){ return x.s; }));
+    return scored.filter(function(x){ return x.s >= top - 1e-9; }).slice(0, 6).map(function(x){ return x.c; });
+  }
+  /* ---------- auto-correct: "road map" -> Roadmap, "Devlop" -> Develop ----------
+     Every column name and every value in the data is the vocabulary. Words in the question are
+     joined or corrected to the nearest vocabulary entry: spacing and case always, and one wrong
+     letter (two in long words). Everyday words are never changed. */
+  var COMMON = {"summarize":1,"summary":1,"portfolio":1,"largest":1,"biggest":1,"smallest":1,"highest":1,"lowest":1,"average":1,"between":1,
+    "month":1,"months":1,"behind":1,"review":1,"target":1,"forecast":1,"compare":1,"breakdown":1,"break":1,"down":1,"above":1,"below":1,
+    "under":1,"count":1,"number":1,"percent":1,"share":1,"overview":1,"status":1,"stage":1,"stages":1,"bucket":1,"buckets":1,"brand":1,
+    "brands":1,"market":1,"markets":1,"owner":1,"owners":1,"business":1,"annualized":1,"incremental":1,"sales":1,"margin":1,"savings":1,
+    "investment":1,"years":1,"finish":1,"launch":1,"dates":1,"names":1,"values":1,"total":1,"active":1,"inactive":1,"people":1,"manager":1,
+    "managers":1,"missing":1,"blank":1,"empty":1,"filled":1,"greater":1,"smaller":1,"between":1,"number":1,"where":1,"which":1,"there":1,
+    "these":1,"those":1,"their":1,"about":1,"projects":1,"project":1,"records":1,"record":1,"different":1,"unique":1,"distinct":1,"group":1,"grouped":1};
+  var VOCAB = null;
+  var compact = function(t){ return String(t).toLowerCase().replace(/[^a-z0-9]+/g, ""); };
+  function vocab(){
+    if (VOCAB) return VOCAB;
+    var map = new Map();
+    (DS || []).forEach(function(ds){
+      ds.cols.forEach(function(c){ var k = compact(c.name); if (k.length >= 3 && !map.has(k)) map.set(k, c.name);
+        if (c.values) c.values.forEach(function(v){ var t = nk(v); if (t.length < 3 || t.length > 40 || /^[\d\s.,$%-]+$/.test(t)) return; var kk = compact(t); if (kk.length >= 3 && !map.has(kk)) map.set(kk, t); }); });
+    });
+    /* single words inside longer names and values ("03 03 Develop" -> Develop), for typo fixes */
+    Array.from(map.values()).forEach(function(t){ String(t).split(/[^A-Za-z]+/).forEach(function(w){ if (w.length >= 5){ var k = w.toLowerCase(); if (!map.has(k) && !COMMAND[k] && !STOP[k]) map.set(k, w); } }); });
+    Object.keys(COMMAND).concat(Object.keys(COMMON)).forEach(function(w){ if (w.length >= 5 && !map.has(w)) map.set(w, w); });
+    VOCAB = {map:map, keys:Array.from(map.keys())};
+    return VOCAB;
+  }
+  function near(a, b, max){                      /* edit distance, stops early once it is over max */
+    if (Math.abs(a.length - b.length) > max) return false;
+    var prev = []; for (var j = 0; j <= b.length; j++) prev[j] = j;
+    for (var i = 1; i <= a.length; i++){
+      var cur = [i], best = i;
+      for (var k = 1; k <= b.length; k++){ cur[k] = Math.min(prev[k] + 1, cur[k - 1] + 1, prev[k - 1] + (a[i - 1] === b[k - 1] ? 0 : 1)); if (cur[k] < best) best = cur[k]; }
+      if (best > max) return false; prev = cur;
+    }
+    return prev[b.length] <= max;
+  }
+  function correct(q){
+    if (!DS || !DS.length) return q;
+    var V = vocab(), toks = nk(q).split(" "), out = [], i = 0, changed = false;
+    var plain = function(t){ return t.toLowerCase().replace(/[^a-z0-9]+/g, ""); };
+    var known = function(w){ return !w || COMMAND[w] || STOP[w] || COMMON[w] || /^\d/.test(w) || V.map.has(w); };
+    while (i < toks.length){
+      var done = false;
+      /* join 2-3 words that are one vocabulary entry when written together: "road map" -> Roadmap */
+      for (var n = 3; n >= 2 && !done; n--){
+        if (i + n > toks.length) continue;
+        var parts = toks.slice(i, i + n).map(plain);
+        if (parts.some(function(p){ return !p || COMMAND[p] || STOP[p]; })) continue;
+        var k = parts.join("");
+        if (V.map.has(k) && !V.map.has(parts.join(" ")) && toks.slice(i, i + n).join(" ").toLowerCase() !== V.map.get(k).toLowerCase()){
+          var tail = /[.,!?;:]+$/.exec(toks[i + n - 1]); out.push(V.map.get(k) + (tail ? tail[0] : "")); i += n; done = true; changed = true;
+        }
+      }
+      if (done) continue;
+      /* one word with a small typo: "Devlop" -> Develop */
+      var w = plain(toks[i]);
+      if (V.map.has(w) && / /.test(V.map.get(w)) && !COMMAND[w] && !STOP[w]){ var tj = /[.,!?;:]+$/.exec(toks[i]); out.push(V.map.get(w) + (tj ? tj[0] : "")); i++; changed = true; continue; }
+      if (w.length >= 5 && !known(w)){
+        var max = w.length >= 9 ? 2 : 1, hit = null;
+        for (var x = 0; x < V.keys.length && !hit; x++){ var key = V.keys[x]; if (key.length >= 4 && near(w, key, max) && V.map.get(key).indexOf(" ") < 0) hit = V.map.get(key); }
+        if (hit){ var tl = /[.,!?;:]+$/.exec(toks[i]); out.push(hit + (tl ? tl[0] : "")); i++; changed = true; continue; }
+      }
+      out.push(toks[i]); i++;
+    }
+    return changed ? out.join(" ") : q;
   }
   function matchValue(col, raw){
     var t = nk(raw).replace(/^["']|["']$/g, "").toLowerCase();
@@ -203,12 +323,14 @@
     var idCols = ds.cols.filter(function(c){ return c.type !== "date" && /(^| )(id|number|no|identifier|num)$/.test(c.w); });
     (qs.match(/\s\d{3,8}(?=\s)/g) || []).forEach(function(m){
       var id = m.trim(), at = qs.indexOf(" " + id + " "), before = qs.slice(Math.max(0, at - 16), at);
-      if (/(>|<|=|over|under|above|below|than|between|and|top|first|last|bottom|least|most|of|in)\s*$/.test(before)) return;   /* a value, not a record */
+      if (/(>|<|=|over|under|above|below|than|between|and|top|first|last|bottom|least|most)\s*$/.test(before)) return;   /* a value, not a record */
       var idc = idCols.filter(function(c){ var k = ci(ds, c); return ds.rows.some(function(r){ return String(r[k] == null ? "" : r[k]).trim() === id; }); })[0];
       if (idc && !used[idc.name]){ filters.push({col:idc, op:"id", v:id}); used[idc.name] = 1; return; }
       var nk2 = ci(ds, ds.nameCol), re = new RegExp("^" + id + "\\b");
       if (!used[ds.nameCol.name] && ds.rows.some(function(r){ return re.test(String(r[nk2] == null ? "" : r[nk2])); })){ filters.push({col:ds.nameCol, op:"idname", v:id}); used[ds.nameCol.name] = 1; }
     });
+    var loose = fuzzyCols(qs, ds, hits.map(function(h){ return h.col; }).concat(filters.map(function(f){ return f.col; })));
+    loose.forEach(function(c){ mentioned.push(c); });
     var byBy = /\b(?:by|per|for each|each|grouped by|broken down by|split by)\s+(.+)$/.exec(ql);
     var groupCol = null;
     if (byBy){ var gh = findCols(" " + byBy[1] + " ", ds)[0]; if (gh) groupCol = gh.col; }
@@ -218,7 +340,7 @@
     /* "top 5 by Total Cost Savings": the "by" column is what to sort on, not what to group by */
     if (topM && groupCol && groupCol.type === "num"){ nums.unshift(groupCol); groupCol = null; }
     return {
-      ql:ql, low:low, filters:filters, mentioned:mentioned, groupCol:groupCol, numCol:nums[0] || null,
+      ql:ql, low:low, filters:filters, mentioned:mentioned, loose:loose, groupCol:groupCol, numCol:nums[0] || null,
       count:/\b(how many|number of|count|how much of)\b/.test(qs),
       sum:/\b(total|sum|combined|overall)\b/.test(qs), avg:/\b(average|avg|mean|typical)\b/.test(qs),
       max:/\b(max|maximum|highest|largest|biggest|most)\b/.test(qs) && !topM, min:/\b(min|minimum|lowest|smallest|least)\b/.test(qs) && !topM,
@@ -254,7 +376,7 @@
 
   /* ---------- choosing the file ---------- */
   function score(q, ds){
-    var ql = " " + words(q) + " ", P = parseQ(q, ds), s = P.filters.reduce(function(t, f){ return t + (f.bare ? 1 : 4); }, 0) + P.mentioned.length * 2 + (P.groupCol ? 2 : 0);   /* a stated filter ("Brand is Alpha") outweighs a value that merely appears */
+    var ql = " " + words(q) + " ", P = parseQ(q, ds), s = P.filters.reduce(function(t, f){ return t + (f.bare ? 1 : 4); }, 0) + (P.mentioned.length - P.loose.length) * 2 + P.loose.length * 0.5 + (P.groupCol ? 2 : 0);   /* a loosely matched column only nudges the choice */   /* a stated filter ("Brand is Alpha") outweighs a value that merely appears */
     var alias = [ds.key].concat(ds.noun === "person" ? ["people", "person", "persons", "staff", "roster", "employee", "employees", "resources", "resource", "who is active"] : []);
     if (alias.some(function(a){ return a && ql.indexOf(" " + a + " data ") > -1 || ql.indexOf(" " + a + " file ") > -1; })) s += 20;
     else if (ds.noun === "person" && alias.some(function(a){ return ql.indexOf(" " + a + " ") > -1; })) s += 8;
@@ -276,13 +398,14 @@
   function ci(ds, c){ return ds.cols.indexOf(c); }
   function answer(q){
     if (!DS || !DS.length) return {none:true};
+    var t = teach(q); if (t) return t;
     var best = DS.map(function(ds){ return score(q, ds); }).sort(function(a, b){ return b.s - a.s; })[0];
     var ds = best.ds, P = best.P;
     var rows = ds.rows.filter(function(r){ return P.filters.every(function(f){ return test(f, r[ci(ds, f.col)]); }); });
     var noun = ds.noun, where = P.filters.length ? " where " + filterText(P.filters) : "";
     var from = '<div class="src">From the ' + esc(ds.label) + " records" + (where ? " (" + esc(where.slice(7)) + ")" : "") + '.</div>';
     var exact = P.filters.filter(function(f){ return !f.bare; }).map(function(f){ return f.col; }).concat(P.mentioned, P.groupCol ? [P.groupCol] : [])
-      .some(function(c){ return c.w.indexOf(" ") > -1; });
+      .some(function(c){ return c.w.indexOf(" ") > -1; }) || (P.loose || []).some(function(c){ return !PAGE_TERMS.test(" " + c.w + " "); });
     var out = {ds:ds.label, pipeline:ds.isPipeline, strong:P.explicit || best.named || exact, filters:P.filters.length};
     var C = function(c){ return {name:c.name, type:c.type, money:c.money, ci:ci(ds, c)}; };
     var nameC = C(ds.nameCol);
@@ -370,7 +493,7 @@
   });
 
   window.gpdExplore = {
-    load: load, answer: answer,
+    load: load, answer: answer, correct: correct, terms: function(){ return Object.assign({}, ALIAS); },
     datasets: function(){ return (DS || []).map(function(d){ return {label:d.label, rows:d.rows.length, cols:d.cols.map(function(c){ return c.name; })}; }); }
   };
 })();
