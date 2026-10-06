@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FBIN R&amp;D Portfolio Hub</title>
+<link rel="icon" type="image/svg+xml" href="{{asset:favicon.svg}}">
 <meta name="gpd-build" content="{{VERSION}} {{COMMIT}} {{ENV}} {{BUILD_TIME}}">
 <!-- @css pages/home/home.css shared/shell.css shared/ask.css -->
 </head>
@@ -38,6 +39,19 @@
           <div class="body">
             <h3>Portfolio Score Card</h3>
             <p>Innovation &amp; CI scorecard: NPD pipeline value by bucket, CI savings, the Ideate-to-Launch funnel, top projects and review candidates.</p>
+            <div class="meta"><span><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 8.2a5.4 5.4 0 1 1-1.7-4.1"/><path d="M13.6 2.4v3.2h-3.2"/></svg>Refresh on demand</span></div>
+            <div class="go">Open dashboard <svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div>
+          </div>
+        </a>
+        <a class="card" style="--c:var(--steel)" href="{{PAGES_URL}}Data_Quality.aspx">
+          <div class="prev">
+            <span class="ic"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 13 3.6v4.1c0 3-2.1 5.4-5 6.5-2.9-1.1-5-3.5-5-6.5V3.6z"/><path d="m5.6 8 1.7 1.7 3.2-3.3"/></svg></span>
+            <span class="badge live2"><i></i>Live</span>
+            <div class="hbars" aria-hidden="true"><div>Critical<span style="width:28%"></span></div><div>High<span style="width:52%"></span></div><div>Medium<span style="width:86%"></span></div><div>Low<span style="width:64%"></span></div></div>
+          </div>
+          <div class="body">
+            <h3>Data Quality</h3>
+            <p>Every project checked against 21 financial and ownership rules: what needs fixing, how serious it is, and the daily trend.</p>
             <div class="meta"><span><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 8.2a5.4 5.4 0 1 1-1.7-4.1"/><path d="M13.6 2.4v3.2h-3.2"/></svg>Refresh on demand</span></div>
             <div class="go">Open dashboard <svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div>
           </div>
@@ -85,6 +99,8 @@
 <!-- @js vendor/xlsx.full.min.js -->
 <!-- @js pages/home/home.js -->
 <!-- @js shared/nav.js -->
+<!-- @js shared/tables.js -->
+<!-- @js shared/explore.js -->
 <!-- @js shared/ask.js -->
 </body>
 </html>

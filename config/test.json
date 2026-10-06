@@ -8,6 +8,8 @@
   "pagesLibrary": "Report Pages",
   "dataLibrary": "Report Files",
   "dataFileName": "Pipeline Data.xlsx",
+  "projectFileName": "Project Data.xlsx",
+  "resourceFileName": "Resource Data.xlsx",
   "reloadMinutes": 60,
   "reviewMonths": 30,
   "pnpClientId": ""

@@ -97,3 +97,29 @@ a.navitem:focus-visible{outline:2px solid var(--brand);outline-offset:0}
 /* environment badge (Dev / Test only) */
 .envbadge{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.08em;
   background:#E8590C;color:#fff;margin-left:4px}
+
+/* resizable table columns (shared/tables.js) */
+.colgrip{position:absolute;top:0;right:-3px;width:8px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
+.colgrip::after{content:"";position:absolute;top:22%;bottom:22%;left:3px;width:2px;border-radius:1px;background:var(--steel);opacity:0;transition:opacity .12s}
+th:hover > .colgrip::after,.colgrip:active::after{opacity:.75}
+th:last-child > .colgrip{right:0;width:6px}
+table.rz-fixed th,table.rz-fixed td{overflow:hidden;text-overflow:ellipsis}
+
+/* Summary tables fit their card on every dashboard: headings wrap instead of forcing a sideways
+   scroll, and rows are only as tall as their content. A person can still widen any column
+   (shared/tables.js); very narrow screens scroll sideways. */
+.tblwrap{overflow-x:auto}
+.tblwrap > table:not(.rz-fixed){width:100%;min-width:0}
+.tblwrap thead th{white-space:normal;vertical-align:bottom;line-height:1.25}
+.tblwrap tbody td:first-child{min-width:150px}
+.tblwrap .pctcell{gap:6px}
+.tblwrap .pctcell .bar{min-width:36px}
+@media (max-width:1700px){ .funnels{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){ .tblwrap > table:not(.rz-fixed){min-width:600px} }
+
+/* every table box can be resized from the handle at its bottom-right corner (shared/tables.js) */
+.rz-box{min-width:260px;min-height:90px}
+.boxgrip{position:absolute;width:16px;height:16px;cursor:nwse-resize;z-index:5;touch-action:none;border-radius:0 0 9px 0;opacity:.7;
+  background:linear-gradient(135deg,transparent 0 50%,var(--ink-3) 50% 57%,transparent 57% 68%,var(--ink-3) 68% 75%,transparent 75% 86%,var(--ink-3) 86% 93%,transparent 93%)}
+.boxgrip:hover{opacity:1}
+@media print{.boxgrip,.colgrip{display:none}}

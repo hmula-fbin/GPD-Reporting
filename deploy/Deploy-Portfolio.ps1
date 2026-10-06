@@ -10,7 +10,7 @@
   3. Runs the tests (unless -SkipTests) and builds dist/<env>/ (unless -SkipBuild).
   4. Signs in to SharePoint as you (PnP.PowerShell, interactive browser sign-in).
   5. Backs up the pages currently on the site to backups/<env>/<timestamp>/.
-  6. Uploads Home.aspx and Portfolio_Scorecard.aspx to the pages library and checks the sizes.
+  6. Uploads Home.aspx, Portfolio_Scorecard.aspx and Data_Quality.aspx to the pages library and checks the sizes.
   7. Writes a line to deploy/deployments.log.
 
 .EXAMPLE
@@ -46,7 +46,7 @@ $version = $pkg.version
 if ($cfg.sitePath -match 'CHANGE-ME') { Fail "config/$Env.json still has a CHANGE-ME site path. Put the real site in first." }
 if (-not $cfg.pnpClientId) { Fail "config/$Env.json has no pnpClientId. Run ./deploy/Setup-PnPApp.ps1 once (see docs/RELEASE.md)." }
 $siteUrl = $cfg.tenantUrl.TrimEnd('/') + $cfg.sitePath
-$pages = @('Home.aspx', 'Portfolio_Scorecard.aspx')
+$pages = @('Home.aspx', 'Portfolio_Scorecard.aspx', 'Data_Quality.aspx')
 $logFile = Join-Path $PSScriptRoot 'deployments.log'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $commit = (git rev-parse --short=8 HEAD 2>$null)
@@ -181,5 +181,6 @@ $who = (git config user.email); if (-not $who) { $who = [Environment]::UserName 
 Step 'Done'
 Write-Host "  Home       $($cfg.tenantUrl)$($cfg.sitePath)/$([uri]::EscapeUriString($cfg.pagesLibrary))/Home.aspx"
 Write-Host "  Scorecard  $($cfg.tenantUrl)$($cfg.sitePath)/$([uri]::EscapeUriString($cfg.pagesLibrary))/Portfolio_Scorecard.aspx"
+Write-Host "  Quality    $($cfg.tenantUrl)$($cfg.sitePath)/$([uri]::EscapeUriString($cfg.pagesLibrary))/Data_Quality.aspx"
 Write-Host "  Backup     backups/$Env/$stamp  (roll back with -Rollback $stamp)"
 Disconnect-PnPOnline

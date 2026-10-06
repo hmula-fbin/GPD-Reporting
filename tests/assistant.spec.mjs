@@ -1,7 +1,7 @@
 // "Ask questions about your data": every answer is checked against an independent calculation
 // over the FULL data file (not the filtered page).
 import { test, expect } from "@playwright/test";
-import { HOME, SCORE, open, allRows } from "./helpers.mjs";
+import { HOME, SCORE, DQ, open, allRows } from "./helpers.mjs";
 import { questions } from "./oracle.mjs";
 
 for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE]]) {
@@ -32,4 +32,74 @@ test("assistant panel opens with suggestions", async ({ page }) => {
   await open(page, SCORE);
   await page.click(".askfab");
   await expect(page.getByText("Ask questions about your data").first()).toBeVisible();
+});
+
+/* ---------- Copilot over every data file (checked against the synthetic files read independently here) ---------- */
+import XLSX from "../tools/lib/sheetjs.mjs";
+import fs from "node:fs";
+function sheetRows(file, mustHave) {
+  const wb = XLSX.read(fs.readFileSync(file), { cellDates: true });
+  for (const n of wb.SheetNames) {
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null });
+    const h = g.findIndex((r) => (r || []).includes(mustHave));
+    if (h > -1) return g.slice(h + 1).filter((r) => r && r.some((v) => v !== null)).map((r) => Object.fromEntries(g[h].map((k, i) => [k, r[i]])));
+  }
+  return [];
+}
+const PROJ = sheetRows("tests/fixtures/dq-project-fixture.xlsx", "ProjectName");
+const PEOPLE = sheetRows("tests/fixtures/dq-resource-fixture.xlsx", "ResourceName");
+const PIPE = sheetRows("tests/fixtures/pipeline-fixture.xlsx", "Project Name");
+const ask = (page, q) => page.evaluate((q) => window.gpdAsk.answerAll(q).then((a) => ({ val: a.val, html: a.html, ds: a.ds })), q);
+
+test("Copilot filters any column of another data file", async ({ page }) => {
+  await open(page, HOME);
+  const exp = PROJ.filter((r) => r["Strategic Bucket"] === "CRQ" && r.Brand === "Alpha").length;
+  const a = await ask(page, "How many projects where Strategic Bucket is CRQ and Brand is Alpha?");
+  expect(a.ds).toBe("Project");
+  expect(a.val).toBe(exp);
+});
+
+test("Copilot answers from the people list", async ({ page }) => {
+  await open(page, HOME);
+  const a = await ask(page, "How many people are active?");
+  expect(a.ds).toBe("Resource");
+  expect(a.val).toBe(PEOPLE.filter((r) => r.ResourceIsActive === true).length);
+});
+
+test("Copilot totals any column by any column, and the answer downloads to Excel", async ({ page }) => {
+  await open(page, SCORE);
+  const by = {};
+  for (const r of PIPE) { const k = r.Business || "(not set)"; by[k] = (by[k] || 0) + (r["Capital Investment"] || 0); }
+  const a = await ask(page, "Total Capital Investment by Business");
+  expect(a.val).toBe(Object.keys(by).length);
+  const topBiz = Object.entries(by).sort((x, y) => y[1] - x[1])[0];
+  expect(a.html).toContain("$" + Math.round(topBiz[1]).toLocaleString("en-US"));
+  await page.click(".askfab");
+  await page.fill("#askQ1", "Total Capital Investment by Business");
+  await page.press("#askQ1", "Enter");
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.locator("#askLog .askxl").last().click()]);
+  expect(dl.suggestedFilename()).toMatch(/\.xlsx$/);
+});
+
+test("portfolio questions still use the scorecard rules", async ({ page }) => {
+  await open(page, HOME);
+  const [plain, all] = await page.evaluate(async () => [window.gpdAsk.answer("Top 5 NPD projects by net sales").html, (await window.gpdAsk.answerAll("Top 5 NPD projects by net sales")).html]);
+  expect(all).toBe(plain);
+});
+
+test("the Data Quality page has the Copilot too", async ({ page }) => {
+  await open(page, DQ);
+  const a = await ask(page, "How many projects where Strategic Bucket is Improve?");
+  expect(a.val).toBe(PROJ.filter((r) => r["Strategic Bucket"] === "Improve").length);
+});
+
+test("Copilot pulls any column for one project by its number, even written as 1st / 2nd", async ({ page }) => {
+  await open(page, HOME);
+  const p = PROJ.find((r) => r.ProjectID === 7001);
+  const when = new Date(2027, 7001 % 12, 5).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const a = await ask(page, "Show me DC 1st Ship 2 date for 7001 Project");
+  expect(a.ds).toBe("Project");
+  expect(a.html).toContain(p.ProjectName);
+  expect(a.html).toContain("DC First Ship 2 Date");
+  expect(a.html).toContain(when);
 });

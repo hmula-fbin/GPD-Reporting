@@ -1,7 +1,7 @@
 # GPD Portfolio Hub - notes for Claude Code
 
-Two SharePoint Online pages (Home.aspx, Portfolio_Scorecard.aspx) built from the modular source in `src/`.
-Each page reads the pipeline workbook live in the browser through the SharePoint REST API, as the person viewing.
+Three SharePoint Online pages (Home.aspx, Portfolio_Scorecard.aspx, Data_Quality.aspx) built from the modular source in `src/`.
+Each page reads its data live in the browser through the SharePoint REST API, as the person viewing: Home and the Scorecard read the pipeline file; Data Quality reads the project file and the resource file.
 
 ## Who you're working with
 Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
@@ -25,7 +25,7 @@ The full process is in docs/TEAM-GUIDE.md.
 ## House rules (business requirements, all covered by tests)
 1. **Never show where the data comes from.** No file name, "SharePoint", "workbook", network drive or library name in visible text. "Excel" appears only as the download-button label. `FORBIDDEN` in tests/helpers.mjs enforces this.
 2. **Default view**: Project Status defaults to In Progress only, and the Phase filter (right above Project Status) defaults to the Active Phase. There is no Include/Exclude filter: show everything.
-3. **"Ask questions about your data"** answers from the FULL data file (`window.gpdData().rows`), never from the filtered view. Engine is in `src/shared/ask.js`; answers are checked against `tests/oracle.mjs`.
+3. **"Ask questions about your data"** (the Copilot, bottom right, on every page) answers from the FULL data, never from the filtered view. Portfolio questions use the engine in `src/shared/ask.js` over `window.gpdData().rows`, checked against `tests/oracle.mjs`. Questions about another file, with an explicit filter ("where Brand is Moen", "> 1m"), or naming a column exactly go to `src/shared/explore.js`, which reads EVERY spreadsheet in the data library (new files are picked up automatically) and answers on any column, with an Excel download per answer.
 4. **KPIs and progress bars use one colour**: `--kpi` #1C5A8A, or #7CC0E4 in dark mode. No red/amber/green.
 5. **Bucket identity colours** stay as defined in `scorecard-colours.css`.
 6. **Excel downloads**: one per table, plus "Download all projects" at the top. No Excel buttons on the scorecard's "Portfolio at a glance".
@@ -51,14 +51,19 @@ The full process is in docs/TEAM-GUIDE.md.
 | Scorecard logic: parse, filters, render, exports, trend snapshots | `src/pages/scorecard/scorecard.js` |
 | Drill-down panel | `src/pages/scorecard/drill.js`, `drill.css`, `drill-panel.html` |
 | Home logic: greeting, headline figures | `src/pages/home/home.js` |
+| Copilot over every data file (any column, any filter) | `src/shared/explore.js` |
+| Resizable table columns on every page (drag a heading edge; double-click resets) | `src/shared/tables.js` |
+| Data Quality: column names, thresholds, the 21 rules, filters, exports, daily tracking | `src/pages/dq/dq.js` (+ `dq.html`, `dq.css`) |
 | Build | `build/build.mjs` |
 | Local preview server | `tools/serve.mjs` |
-| Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.xlsx` |
+| Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.xlsx`; `tools/make-dq-fixture.mjs` -> `tests/fixtures/dq-*-fixture.xlsx` (one project per rule) |
 | Deploy | `deploy/Deploy-Portfolio.ps1` (PnP.PowerShell). Prod checks the build stamp live on Dev |
 | Team setup scripts | `setup/1-Install-Tools.ps1`, `2-Create-Shared-Copy.ps1`, `3-Join-Project.ps1` |
 
 ## Data facts
 - The parser finds a sheet named PIPELINE (or one whose header row has "Project Name" and "Project Bucket (NEW)"). The header row is found within the first 30 rows.
-- The columns used are in `FIELD_MAP` in `scorecard.js`. Home has its own small parser in `home.js`; keep the two consistent.
+- The columns used are in `FIELD_MAP` in `scorecard.js`. Every Scorecard table also shows Capital Investment and Product Development Investment (labelled "PD Investment"). Home has its own small parser in `home.js`; keep the two consistent.
 - NPD = Grow the Core + Refresh & Sustain + Create & Transform. CI and CRQ are reported separately.
-- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months).
+- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months), `fbin_dq_snaps_v1` (Data Quality daily tracking, 400 days), `fbin_colwidths` (each person's column widths).
+- Data Quality filters are all multi-select. Status sits above Phase there (the Scorecard keeps Phase above Status).
+- Data Quality reads `projectFileName` and `resourceFileName` from `config/<env>.json`. Column names are in `PROJECT_COLS` / `RESOURCE_COLS` at the top of `dq.js`; a rule whose column is missing switches itself off and the page says so.

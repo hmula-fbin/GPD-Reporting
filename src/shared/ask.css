@@ -85,3 +85,7 @@ body.ask-chat .askchat{opacity:1;transform:none;pointer-events:auto;visibility:v
 }
 @media print{.askfab,.askpop,.askchat,.asktoast{display:none!important}}
 @media (prefers-reduced-motion:reduce){.askpop,.askchat,.askfab{transition:none}.amsg.typing i{animation:none}}
+
+/* Excel download under an answer table */
+.askchat .amsg .askxl{border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:6px;padding:1px 8px;font:inherit;font-size:11px;cursor:pointer;margin-left:4px}
+.askchat .amsg .askxl:hover{border-color:var(--steel);color:var(--steel)}

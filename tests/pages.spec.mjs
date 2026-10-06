@@ -1,8 +1,8 @@
 // Both pages: load cleanly, greet the viewer, navigate, theme, and never reveal where the data comes from.
 import { test, expect } from "@playwright/test";
-import { HOME, SCORE, FORBIDDEN, open } from "./helpers.mjs";
+import { HOME, SCORE, DQ, FORBIDDEN, open } from "./helpers.mjs";
 
-for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE]]) {
+for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE], ["Data Quality", DQ]]) {
   test.describe(name, () => {
     test("loads with no script errors and no horizontal scroll", async ({ page }) => {
       const errors = await open(page, url);
@@ -59,12 +59,63 @@ test("Home is clean: no glance panel, no intro text, no scorecard button in the 
 });
 
 test("pages say FBIN R&D, never GPD, and the scorecard title is in title case", async ({ page }) => {
-  for (const url of [HOME, SCORE]) {
+  for (const url of [HOME, SCORE, DQ]) {
     await open(page, url);
     const text = await page.locator("body").innerText();
     expect(text).not.toMatch(/\bGPD\b/);
     await expect(page.locator(".appbrand .nm")).toHaveText("FBIN R&D Portfolio Hub");
     expect(await page.title()).not.toMatch(/\bGPD\b/);
   }
+  await open(page, SCORE);
   await expect(page.locator("h1").first()).toHaveText("Innovation & CI Portfolio Scorecard");
+});
+
+test("every page shows the report icon in the browser tab", async ({ page }) => {
+  for (const url of [HOME, SCORE, DQ]) {
+    await open(page, url);
+    const href = await page.locator('link[rel="icon"]').getAttribute("href");
+    expect(href).toMatch(/^data:image\/svg\+xml;base64,/);
+  }
+});
+
+for (const [name, url, sel] of [["Scorecard", SCORE, "#content .tblwrap table"], ["Data Quality", DQ, "#st"]]) {
+  test(name + ": table columns can be resized, are remembered, and double-click resets them", async ({ page, isMobile }) => {
+    test.skip(isMobile, "drag-to-resize is a mouse action");
+    await open(page, url);
+    const th = page.locator(sel).first().locator("thead th").nth(1);
+    const before = (await th.boundingBox()).width;
+    const g = (await th.locator(".colgrip").boundingBox());
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(g.x + g.width / 2 + 90, g.y + g.height / 2, { steps: 5 });
+    await page.mouse.up();
+    const after = (await th.boundingBox()).width;
+    expect(after).toBeGreaterThan(before + 60);
+    await open(page, url);
+    expect((await page.locator(sel).first().locator("thead th").nth(1).boundingBox()).width).toBeGreaterThan(before + 60);
+    await page.locator(sel).first().locator("thead th").nth(1).locator(".colgrip").dblclick();
+    await expect(page.locator(sel).first()).not.toHaveClass(/rz-fixed/);
+  });
+}
+
+test("a table box can be dragged taller and wider from its corner, and is remembered", async ({ page, isMobile }) => {
+  test.skip(isMobile, "dragging is a mouse action");
+  await open(page, SCORE);
+  const w = page.locator("#content .tblwrap").first();
+  await w.evaluate((el) => { el.style.width = "700px"; });   /* start narrower than the card so there is room to widen */
+  const b = await w.boundingBox();
+  await expect.poll(async () => Math.round((await page.locator("#content .boxgrip").first().boundingBox()).x)).toBe(Math.round(b.x + b.width - 16));
+  await page.locator("#content .boxgrip").first().scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollBy(0, 200));
+  const b2 = await w.boundingBox();
+  const g = await page.locator("#content .boxgrip").first().boundingBox();
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(g.x + g.width / 2 + 120, g.y + g.height / 2 + 160, { steps: 6 });
+  await page.mouse.up();
+  const a = await w.boundingBox();
+  expect(a.height).toBeGreaterThan(b.height + 100);
+  expect(a.width).toBeGreaterThan(b.width + 80);
+  await open(page, SCORE);
+  expect((await page.locator("#content .tblwrap").first().boundingBox()).height).toBeGreaterThan(b.height + 100);
 });

@@ -11,7 +11,7 @@
     "build:prod": "node build/build.mjs --env prod",
     "build:all": "node build/build.mjs --env all",
     "preview": "node build/build.mjs --env dev && node tools/serve.mjs --env dev",
-    "fixture": "node tools/make-fixture.mjs",
+    "fixture": "node tools/make-fixture.mjs && node tools/make-dq-fixture.mjs",
     "test": "node build/build.mjs --env dev && playwright test",
     "test:ui": "node build/build.mjs --env dev && playwright test --ui",
     "deploy:dev": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev",

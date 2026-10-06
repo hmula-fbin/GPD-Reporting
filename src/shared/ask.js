@@ -269,7 +269,7 @@
   }
   function answer(qRaw){
     var d=data();
-    if(!d) return {html:'<p>The page is still loading its data. Try again in a moment.</p>'};
+    if(!d) return {html:'<p>The page is still loading its data. Try again in a moment.</p>', nodata:true};
     var P=parse(qRaw,d.rows), q=P.q, f=P.filters, rs=applyF(d.rows,f);
     if (/^\s*(help|hi|hello|hey)\b/.test(q) || /what can (you|i) (do|ask)|how do i use/.test(q)) return help();
     /* "what is Grow the Core?" -> the Project Bucket reference */
@@ -314,7 +314,7 @@
     if (f.length) return summary(d,rs,f);
     var pr2 = findProject(q, d.rows); if (pr2) return project(d,pr2);
     return {html:'<p>I couldn\u2019t match that to the data on this page. I can count, total, average, rank, break down, compare and look up projects \u2014 for example \u201ctop 5 CI projects by CM\u201d, \u201cnet sales by stage\u201d or \u201cprojects over 40 months\u201d.</p>',
-      val:null, follow:["Summarize the portfolio","What can I ask?"]};
+      val:null, none:true, follow:["Summarize the portfolio","What can I ask?"]};
   }
 
   /* ---------- UI ---------- */
@@ -324,8 +324,9 @@
     [{q:"Summarize this page",icon:"sum"},{q:"Which projects are over the review line?",icon:"clock"},{q:"Top 5 projects by net sales",icon:"list"},{q:"Projects by business unit",icon:"bars"}]; }
   function drawSug(){ $("askSug").innerHTML=suggestions().map(function(s,i){ return '<button class="askitem" type="button" data-i="'+i+'">'+(ICON[s.icon]||ICON.sum)+'<span>'+esc(s.q)+'</span></button>'; }).join("");
     Array.prototype.forEach.call($("askSug").querySelectorAll(".askitem"),function(b){ b.onclick=function(){ ask(suggestions()[+b.dataset.i].q); }; }); }
-  function setScope(){ var d=data(); $("askScope").textContent = d ? "Answers from "+d.scope : "Answers from your portfolio data"; $("askScope").title=$("askScope").textContent; }
-  function popOpen(){ drawSug(); document.body.classList.add("ask-pop"); fab.setAttribute("aria-expanded","true"); setTimeout(function(){ $("askQ1").focus(); },40); }
+  function setScope(){ var d=data(), X=window.gpdExplore, ds=X?X.datasets():[];
+    $("askScope").textContent = ds.length ? "Answers from all your data: "+ds.map(function(x){ return x.label; }).join(", ") : d ? "Answers from "+d.scope : "Answers from your portfolio data"; $("askScope").title=$("askScope").textContent; }
+  function popOpen(){ if(window.gpdExplore) window.gpdExplore.load().then(setScope); drawSug(); document.body.classList.add("ask-pop"); fab.setAttribute("aria-expanded","true"); setTimeout(function(){ $("askQ1").focus(); },40); }
   function popClose(){ document.body.classList.remove("ask-pop"); fab.setAttribute("aria-expanded","false"); }
   function chatOpen(){ popClose(); setScope(); document.body.classList.add("ask-chat"); chat.setAttribute("aria-hidden","false");
     if(!logEl.children.length) greet(); setTimeout(function(){ $("askQ2").focus(); },60); }
@@ -340,8 +341,20 @@
     if(!document.body.classList.contains("ask-chat")) chatOpen();
     Array.prototype.forEach.call(logEl.querySelectorAll(".afollow"),function(x){ x.remove(); });
     bubble("me",esc(q)); var t=bubble("bot typing","<i></i><i></i><i></i>");
-    setTimeout(function(){ var a; try{ a=answer(q); }catch(e){ console.error(e); a={html:"<p>Something went wrong working that out. Try rephrasing.</p>"}; }
-      t.remove(); bubble("bot",a.html); follow(a.follow); log.push({q:q, a:a.html.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim()}); }, 260);
+    setTimeout(function(){ answerAll(q).then(function(a){
+      t.remove(); bubble("bot",a.html); follow(a.follow); log.push({q:q, a:a.html.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim()}); setScope(); }); }, 260);
+  }
+  /* The page's own engine knows the portfolio rules (NPD, annualized figures, review line). Every other
+     question - another file, an explicit filter ("where Brand is Moen"), or a column named exactly - goes
+     to the explorer, which reads every data file. */
+  function answerAll(q){
+    var a; try{ a=answer(q); }catch(e){ console.error(e); a={html:"<p>Something went wrong working that out. Try rephrasing.</p>", none:true}; }
+    var X=window.gpdExplore; if(!X) return Promise.resolve(a);
+    return X.load().then(function(){
+      var g=null; try{ g=X.answer(q); }catch(e){ console.error(e); }
+      if(g && !g.none && (a.none || a.nodata || !g.pipeline || g.strong)) return g;
+      return a;
+    }, function(){ return a; });
   }
   function copy(text){
     function fb(){ var ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} ta.remove(); return ok; }
@@ -371,5 +384,5 @@
   }, true);
   if (ICON_URL) Array.prototype.forEach.call(document.querySelectorAll(".askfab .mk,.achead .mk"),function(el){
     var img=document.createElement("img"); img.className="mk"; img.alt=""; img.src=ICON_URL; el.parentNode.replaceChild(img,el); });
-  window.gpdAsk={ ask:ask, answer:answer, open:chatOpen, parse:function(q){ var d=data(); return d?parse(q,d.rows):null; } };
+  window.gpdAsk={ ask:ask, answer:answer, answerAll:answerAll, open:chatOpen, parse:function(q){ var d=data(); return d?parse(q,d.rows):null; } };
 })();

@@ -88,7 +88,7 @@
   }
   function show(){ document.body.classList.add("dr-open"); $("drPanel").setAttribute("aria-hidden","false"); setTimeout(()=>$("drClose").focus(),60); }
   function hide(){ document.body.classList.remove("dr-open"); $("drPanel").setAttribute("aria-hidden","true"); }
-  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Finish",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0]];
+  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Finish",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0],["capex","Capital Investment",0],["pdinv","PD Investment",0]];
   function val(r,k){ return k==="_st" ? (stageOf(r)||strip(r.stage)) : r[k]; }
   function strip(v){ return String(v||"").replace(/^[\d\s]+/,""); }
   function rows(){
@@ -109,8 +109,8 @@
       return '<th class="'+(c[2]?'l':'')+'" aria-sort="'+(on?(D.sort.d>0?'ascending':'descending'):'none')+'"><button type="button" data-k="'+c[0]+'">'+esc(c[1])+(on?' <span class="ar">'+(D.sort.d>0?'\u25b2':'\u25bc')+'</span>':'')+'</button></th>'; }).join("")+'</tr>';
     const body=list.map((r,i)=>{ const slip = r.fc!=null && r.tgt ? (r.fc/r.tgt>1.25?"over":r.fc/r.tgt>1?"slip":"under") : "";
       return '<tr tabindex="0" data-i="'+i+'"><td class="l">'+esc(r.name)+'<small data-bucket="'+esc(r.bucket||"")+'" data-proj="'+esc(r.name)+'">'+esc(r.bucket||"")+'</small></td><td class="l">'+esc(val(r,"_st")||"\u2014")+'</td><td class="l">'+esc(r.owner||"\u2014")+'</td>'
-        +'<td>'+dstr(r.finish)+'</td><td class="'+slip+'" title="target '+mo2(r.tgt)+'">'+mo2(r.fc)+'</td><td title="'+moneyFull(r.ns)+'">'+money(r.ns)+'</td><td title="'+moneyFull(r.cm)+'">'+money(r.cm)+'</td></tr>'; }).join("");
-    $("drTable").innerHTML='<thead>'+head+'</thead><tbody>'+(body||'<tr><td colspan="7" class="muted" style="text-align:left">No projects match.</td></tr>')+'</tbody>';
+        +'<td>'+dstr(r.finish)+'</td><td class="'+slip+'" title="target '+mo2(r.tgt)+'">'+mo2(r.fc)+'</td><td title="'+moneyFull(r.ns)+'">'+money(r.ns)+'</td><td title="'+moneyFull(r.cm)+'">'+money(r.cm)+'</td><td title="'+moneyFull(r.capex)+'">'+money(r.capex)+'</td><td title="'+moneyFull(r.pdinv)+'">'+money(r.pdinv)+'</td></tr>'; }).join("");
+    $("drTable").innerHTML='<thead>'+head+'</thead><tbody>'+(body||'<tr><td colspan="9" class="muted" style="text-align:left">No projects match.</td></tr>')+'</tbody>';
     $("drCount").textContent = D.q ? list.length+" of "+all.length+" shown" : "";
     $("drTable").querySelectorAll("th button").forEach(b=>b.onclick=()=>{ const k=b.dataset.k; D.sort = D.sort.k===k ? {k,d:-D.sort.d} : {k,d:(["name","_st","owner","finish"].indexOf(k)>-1?1:-1)}; draw(); });
     $("drTable").querySelectorAll("tbody tr[data-i]").forEach(tr=>{ const go=()=>openProject(list[+tr.dataset.i], true);
@@ -132,7 +132,7 @@
       +'<div class="'+st+'"><span>Forecast</span><i><b style="width:'+((r.fc||0)/mx*100).toFixed(1)+'%"></b></i><em>'+mo2(r.fc)+'</em></div></div>'
       +(behind?'<p class="drnote">Forecast is '+(r.fc-r.tgt).toFixed(1)+' months over target'+(r.fc>R?' and over the '+R+'-month review line':'')+'.</p>':(r.fc!=null&&r.tgt!=null?'<p class="drnote">Forecast is on or under target.</p>':''))
       +'<h3>Financials (annualized)</h3>'+dl([["Net sales",money(r.ns)],["Contribution margin",money(r.cm)],["CM %",r.ns?((r.cm/r.ns)*100).toFixed(1)+"%":"\u2014"],
-          ["Incremental net sales",money(r.ins)],["Incremental CM",money(r.icm)],["Total investment",money(r.inv)]])
+          ["Incremental net sales",money(r.ins)],["Incremental CM",money(r.icm)],["Total investment",money(r.inv)],["Capital Investment",money(r.capex)],["PD Investment",money(r.pdinv)]])
       +'<h3>Ownership &amp; scope</h3>'+dl([["Owner",r.owner],["Business unit",strip(r.bu)],["Business",strip(r.biz)],["Brand",r.brand],["Market",r.mkt],["Bucket",r.bucket]]);
     $("drPanel").querySelector(".drbody").scrollTop=0;
     show();

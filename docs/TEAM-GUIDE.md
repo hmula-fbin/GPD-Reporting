@@ -5,7 +5,7 @@ This guide assumes you have never used VS Code, git or Claude Code before.
 **How we work for now.**
 
 - Changes are made in **VS Code with Claude Code**.
-- The pages are built as **.aspx files** and **uploaded by hand**: you drag the two files into the SharePoint library.
+- The pages are built as **.aspx files** and **uploaded by hand**: you drag the page files (Home, Scorecard, Data Quality) into the SharePoint library.
 - The automatic deploy (Part G) is optional and can come later, once IT approves the sign-in app.
 - Working alone at first? Do Part A steps A1–A6, then Parts C and D. Do A7 (the OneDrive shared copy) and Part B when teammates join.
 
@@ -152,7 +152,7 @@ Type these into the **Claude panel** (Spark icon). Text in *italics* is an examp
 | 6 | Not happy? Say what to adjust and repeat 4–5 | *Make the heading smaller and put it on one line on phones* |
 | 7 | Happy: save and share it | `/share-change` |
 | 8 | Build the Dev pages | `/package-dev`, or **Run Task… → Upload: package Dev pages**. It runs the tests, builds the pages, and opens both the folder and the Dev library |
-| 9 | Upload them to Dev | Check custom scripts are on today. Drag `Home.aspx` and `Portfolio_Scorecard.aspx` into the library and choose **Replace**. Open both links to check. Claude writes the Teams message for the requester |
+| 9 | Upload them to Dev | Check custom scripts are on today. Drag `Home.aspx`, `Portfolio_Scorecard.aspx` and `Data_Quality.aspx` into the library and choose **Replace**. Open each link to check. Claude writes the Teams message for the requester |
 | 10a | Requester says it needs changes | Go back to step 3. You are still on the same change |
 | 10b | Requester says OK | Message the release owner: *"change/greeting-wording is approved on Dev"* |
 
@@ -169,16 +169,16 @@ Notes:
 | # | Do | How |
 |---|---|---|
 | 1 | Get the approved change into the main version | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, and saves it |
-| 2 | Put that exact release on Dev | `/package-dev`, then drag both files into the Dev library and have a quick look |
+| 2 | Put that exact release on Dev | `/package-dev`, then drag all three page files into the Dev library and have a quick look |
 | 3 | Build the Prod pages | `/package-prod`, or **Run Task… → Upload: package Prod pages (release owner)**. It refuses unless you're the release owner, on the main version, with everything saved and tagged, and the tests pass |
-| 4 | Upload to Prod | Check custom scripts are on today for the Prod site. Drag both files into the Prod library and choose **Replace** |
+| 4 | Upload to Prod | Check custom scripts are on today for the Prod site. Drag all three page files into the Prod library and choose **Replace** |
 | 5 | Smoke test on Prod | Open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
 
 **To undo a release:**
 
 1. In the SharePoint library, click **…** next to the file and choose **Version history**.
 2. Restore the previous version.
-3. Do this for both files.
+3. Do this for each page file.
 
 Every build also writes `UPLOAD-STEPS.txt` next to the pages, with the exact links.
 

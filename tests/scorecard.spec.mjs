@@ -99,3 +99,24 @@ test("Refresh now reloads the data", async ({ page }) => {
   await page.click("#reloadBtn");
   await expect(page.locator("#inviewN")).toHaveText(before);
 });
+
+test("every scorecard table shows Capital Investment and PD Investment from the data file", async ({ page }) => {
+  await open(page, SCORE);
+  const heads = await page.locator("#content .tblwrap table").evaluateAll((ts) => ts.map((t) => Array.from(t.querySelectorAll("thead th")).map((th) => th.textContent.trim())));
+  expect(heads.length).toBeGreaterThan(4);
+  for (const h of heads) { expect(h).toContain("Capital Investment"); expect(h).toContain("PD Investment"); }
+  const t = await page.evaluate(() => {
+    const npd = S.last.view.filter((r) => ["Grow the Core", "Refresh & Sustain", "Create & Transform"].includes(r.bucket));
+    return { capex: S.last.npdTotal.capex, pdinv: S.last.npdTotal.pdinv, sumCapex: npd.reduce((a, r) => a + (r.capex || 0), 0), sumPd: npd.reduce((a, r) => a + (r.pdinv || 0), 0) };
+  });
+  expect(t.sumPd).toBeGreaterThan(0);
+  expect(t.capex).toBe(t.sumCapex);
+  expect(t.pdinv).toBe(t.sumPd);
+});
+
+test("summary tables fit their card on a desktop screen (no sideways scroll)", async ({ page, isMobile }) => {
+  test.skip(isMobile, "phones scroll wide tables sideways");
+  await open(page, SCORE);
+  const wide = await page.locator("#content .tblwrap").evaluateAll((ws) => ws.filter((w) => w.scrollWidth > w.clientWidth + 1).map((w) => w.querySelector("th") && w.querySelector("th").textContent));
+  expect(wide).toEqual([]);
+});
