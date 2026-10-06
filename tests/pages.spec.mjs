@@ -178,3 +178,25 @@ test("wide tables have left/right arrows that stay in view and scroll the table"
   await left.click();
   await expect.poll(() => wrap.evaluate((el) => el.scrollLeft)).toBeLessThan(far - 100);
 });
+
+for (const [name, url] of [["Scorecard", SCORE], ["Data Quality", DQ]]) {
+  test(`${name}: while loading, a light line fits the viewer's time of day and changes every few seconds`, async ({ page }) => {
+    let release;
+    const held = new Promise((r) => (release = r));
+    await page.route("**/$value", async (route) => { await held; await route.continue().catch(() => {}); });   /* keep the data waiting */
+    for (const [time, part] of [["2026-10-06T07:30:00", "early"], ["2026-10-06T23:15:00", "night"]]) {
+      await page.clock.install({ time: new Date(time) });
+      await page.goto(url);
+      const msg = page.locator("#emptyMsg");
+      await expect(msg).toHaveAttribute("data-part", part);
+      const first = await msg.innerText();
+      expect(first).not.toBe("This takes a second or two.");
+      expect(first).not.toMatch(FORBIDDEN);
+      await page.clock.runFor(4000);
+      const second = await msg.innerText();
+      expect(second).not.toBe(first);
+      expect(second).not.toMatch(FORBIDDEN);
+    }
+    release();
+  });
+}
