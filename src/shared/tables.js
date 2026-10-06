@@ -72,7 +72,7 @@
     g.style.left = (w.offsetLeft + w.offsetWidth - 16) + "px";
     g.style.top = (w.offsetTop + w.offsetHeight - 16) + "px";
   }
-  var ro = window.ResizeObserver ? new ResizeObserver(function(es){ es.forEach(function(e){ place(e.target); }); }) : null;
+  var ro = window.ResizeObserver ? new ResizeObserver(function(es){ es.forEach(function(e){ place(e.target); if (e.target._rzArrows) placeArrows(e.target); }); }) : null;
   function prepBox(w){
     var k = boxKey(w);
     if (w._rzGrip && w._rzGrip.isConnected){ if (k !== w._rzKey2){ w._rzKey2 = k; applyBox(w, k); } place(w); return; }
@@ -112,9 +112,64 @@
     if (s && s.w){ w.style.width = s.w >= 0.995 ? "" : (s.w * 100).toFixed(2) + "%"; w.style.height = s.h + "px"; w.style.maxHeight = "none"; }
   }
   window.addEventListener("resize", function(){ boxes = boxes.filter(function(w){ return w.isConnected; }); boxes.forEach(place); });
+  /* Sideways-scroll arrows: when a table is wider than its box, a left and a right arrow sit on its
+     sides, centred on the part of the table in view, so nobody has to go down to the bottom scroll bar.
+     Click to move about a screenful of columns; hold to keep scrolling. */
+  var arrowed = [];
+  function arrow(dir){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tblarrow " + dir; b.hidden = true;
+    b.setAttribute("aria-label", "Scroll table " + dir);
+    b.innerHTML = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (dir === "left" ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5") + '"/></svg>';
+    return b;
+  }
+  function frozenWidth(w){ var th = w.querySelector("thead th"); return th && getComputedStyle(th).position === "sticky" ? th.getBoundingClientRect().width : 0; }
+  function placeArrows(w){
+    var a = w._rzArrows; if (!a) return;
+    var L = a[0], R = a[1];
+    if (!w.isConnected || !w.offsetParent || w.scrollWidth <= w.clientWidth + 2){ L.hidden = R.hidden = true; return; }
+    var r = w.getBoundingClientRect(), top = Math.max(r.top, 0), bot = Math.min(r.bottom, window.innerHeight);
+    if (bot - top < 70){ L.hidden = R.hidden = true; return; }
+    /* outside the table, in the page margin, so no cell is covered; where the margin is too narrow
+       (phones) the arrow straddles the table edge and stays faint until pointed at */
+    var S = 26, y = w.offsetTop + ((top + bot) / 2 - r.top) - S / 2;
+    var host = (w.closest("main") || document.body).getBoundingClientRect();
+    var roomL = r.left - host.left, roomR = host.right - r.right;
+    L.style.top = R.style.top = Math.round(y) + "px";
+    L.style.left = Math.round(roomL >= S + 2 ? w.offsetLeft - S - 2 : w.offsetLeft - S / 2) + "px";
+    R.style.left = Math.round(roomR >= S + 2 ? w.offsetLeft + w.offsetWidth + 2 : w.offsetLeft + w.offsetWidth - S / 2) + "px";
+    L.classList.toggle("over", roomL < S + 2); R.classList.toggle("over", roomR < S + 2);
+    L.hidden = w.scrollLeft <= 1;
+    R.hidden = w.scrollLeft + w.clientWidth >= w.scrollWidth - 1;
+  }
+  function prepArrows(w){
+    if (w._rzArrows && w._rzArrows[0].isConnected){ placeArrows(w); return; }
+    var par = w.parentNode; if (!par) return;
+    if (getComputedStyle(par).position === "static") par.style.position = "relative";
+    var L = arrow("left"), R = arrow("right");
+    w.insertAdjacentElement("afterend", R); w.insertAdjacentElement("afterend", L);
+    w._rzArrows = [L, R];
+    [[L, -1], [R, 1]].forEach(function(x){
+      var b = x[0], d = x[1], hold = null, held = false;
+      b.addEventListener("click", function(){ if (!held) w.scrollBy({left: d * Math.max(120, (w.clientWidth - frozenWidth(w)) * 0.7), behavior: "smooth"}); held = false; });
+      b.addEventListener("pointerdown", function(){ held = false;
+        hold = setTimeout(function tick(){ held = true; w.scrollLeft += d * 18; hold = setTimeout(tick, 16); }, 350); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(function(ev){ b.addEventListener(ev, function(){ clearTimeout(hold); }); });
+    });
+    w.addEventListener("scroll", function(){ placeArrows(w); }, {passive:true});
+    if (ro) ro.observe(w);
+    arrowed.push(w);
+    placeArrows(w);
+  }
+  var aq = false;
+  function placeAll(){ if (aq) return; aq = true; requestAnimationFrame(function(){ aq = false;
+    arrowed = arrowed.filter(function(w){ return w.isConnected; }); arrowed.forEach(placeArrows); }); }
+  window.addEventListener("scroll", placeAll, {passive:true});
+  window.addEventListener("resize", placeAll);
+
   function scan(){
     Array.prototype.forEach.call(document.querySelectorAll("table"), prep);
-    Array.prototype.forEach.call(document.querySelectorAll(".tblwrap, .gridwrap"), function(w){ if (!w.closest(".askchat")) prepBox(w); });
+    Array.prototype.forEach.call(document.querySelectorAll(".tblwrap, .gridwrap"), function(w){ if (!w.closest(".askchat")){ prepBox(w); prepArrows(w); } });
   }
   var queued = false;
   new MutationObserver(function(){ if (queued) return; queued = true; requestAnimationFrame(function(){ queued = false; scan(); }); })

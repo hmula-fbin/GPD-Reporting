@@ -139,3 +139,42 @@ test("resized tables scale with the screen instead of keeping a fixed pixel size
   await page.locator("#content .boxgrip").first().dblclick();
   expect(await share()).toBeGreaterThan(0.99);
 });
+
+test("scrollable tables keep their heading row and first column in place (freeze panes)", async ({ page, isMobile }) => {
+  test.skip(isMobile, "measured on desktop");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, DQ);
+  const wrap = page.locator("#gridwrap");
+  const where = () => page.evaluate(() => {
+    const w = document.getElementById("gridwrap").getBoundingClientRect();
+    const th = document.querySelector("#st thead th").getBoundingClientRect();
+    const td = document.querySelector("#gridBody tr[data-i] td").getBoundingClientRect();
+    return { wl: w.left, wt: w.top, thTop: th.top, tdLeft: td.left };
+  });
+  const before = await where();
+  await wrap.evaluate((el) => { el.scrollLeft = 500; el.scrollTop = 200; });
+  await page.waitForTimeout(100);
+  const after = await where();
+  expect(Math.abs(after.tdLeft - before.tdLeft)).toBeLessThan(2);     /* first column did not move sideways */
+  expect(Math.abs(after.thTop - before.thTop)).toBeLessThan(2);       /* heading row did not move up */
+});
+
+test("wide tables have left/right arrows that stay in view and scroll the table", async ({ page, isMobile }) => {
+  test.skip(isMobile, "measured on desktop");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, DQ);
+  const wrap = page.locator("#gridwrap"), left = page.locator(".tblarrow.left").first(), right = page.locator(".tblarrow.right").first();
+  await wrap.scrollIntoViewIfNeeded();
+  await expect(right).toBeVisible();
+  await expect(left).toBeHidden();                                         /* already at the far left */
+  const vb = await right.boundingBox();
+  expect(vb.y).toBeGreaterThan(0); expect(vb.y + vb.height).toBeLessThan(800);   /* in view, not at the bottom of the page */
+  const tb = await wrap.boundingBox();
+  expect(vb.x).toBeGreaterThanOrEqual(tb.x + tb.width - 1);                    /* beside the table, not over its cells */
+  await right.click();
+  await expect.poll(() => wrap.evaluate((el) => el.scrollLeft)).toBeGreaterThan(100);
+  await expect(left).toBeVisible();
+  const far = await wrap.evaluate((el) => el.scrollLeft);
+  await left.click();
+  await expect.poll(() => wrap.evaluate((el) => el.scrollLeft)).toBeLessThan(far - 100);
+});
