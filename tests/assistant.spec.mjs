@@ -32,6 +32,7 @@ test("assistant panel opens with suggestions", async ({ page }) => {
   await open(page, SCORE);
   await page.click(".askfab");
   await expect(page.getByText("Ask questions about your data").first()).toBeVisible();
+  await expect(page.getByText("Continue in Microsoft 365 Copilot")).toBeHidden();   /* hand-off link is switched off */
 });
 
 /* ---------- Copilot over every data file (checked against the synthetic files read independently here) ---------- */
