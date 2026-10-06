@@ -119,3 +119,23 @@ test("a table box can be dragged taller and wider from its corner, and is rememb
   await open(page, SCORE);
   expect((await page.locator("#content .tblwrap").first().boundingBox()).height).toBeGreaterThan(b.height + 100);
 });
+
+test("resized tables scale with the screen instead of keeping a fixed pixel size", async ({ page, isMobile }) => {
+  test.skip(isMobile, "dragging is a mouse action");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, SCORE);
+  const w = page.locator("#content .tblwrap").first();
+  const share = () => w.evaluate((el) => el.getBoundingClientRect().width / el.parentElement.clientWidth);
+  expect(await share()).toBeGreaterThan(0.99);                       /* untouched: fills its card */
+  await page.locator("#content .boxgrip").first().scrollIntoViewIfNeeded();
+  const g = await page.locator("#content .boxgrip").first().boundingBox();
+  await page.mouse.move(g.x + 8, g.y + 8); await page.mouse.down();
+  await page.mouse.move(g.x + 8 - 300, g.y + 8, { steps: 6 }); await page.mouse.up();
+  const s1 = await share();
+  expect(s1).toBeLessThan(0.85);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.waitForTimeout(200);
+  expect(Math.abs((await share()) - s1)).toBeLessThan(0.02);       /* same share of the wider screen */
+  await page.locator("#content .boxgrip").first().dblclick();
+  expect(await share()).toBeGreaterThan(0.99);
+});
