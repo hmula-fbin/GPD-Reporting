@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.2 - 2026-10-07
+- Scorecard tables work like frozen panes in Excel: the heading row and the first column stay in place while you scroll. Long tables scroll inside their own box.
+- Wide tables have left and right arrows beside them, so you can scroll sideways without hunting for the scroll bar.
+- Every Scorecard table also shows Capital Investment and PD Investment.
+- Table columns can be resized by dragging a heading edge (double-click resets), and table boxes from their corner. Each person's sizes are remembered and scale with the screen.
+- The pages fit phones, tablets, laptops and large screens. Below laptop width the filters fold into a "Filters" button.
+- While a page loads, the line under "Loading..." changes every few seconds with a light remark for the viewer's time of day.
+- "Ask questions about your data" understands abbreviations, loosely named columns and small typos, and can be taught new terms. It can answer from every data file, with an Excel download per answer. The "Continue in Microsoft 365 Copilot" link is hidden.
+- The browser tab shows the report icon.
+- The pages read the data from CSV files (same names, same place).
+- Data Quality Dashboard: shown as "Coming soon" on Home and in the menu while it is finished (it is live on Dev only).
+
 ## v1.3.1 - 2026-10-05
 - The hub is now called "FBIN R&D Portfolio Hub" (it was "GPD Portfolio Hub"), in the app bar, menu and browser tab.
 - Home and the scorecard say "FBIN R&D" where they said "GPD", including "Contact the FBIN R&D PPM team" in the footer and help messages, and in the assistant's answers.
