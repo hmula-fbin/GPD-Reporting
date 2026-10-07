@@ -84,7 +84,27 @@ test("problem cells are tinted, explain themselves, and a blank one reads missin
   await expect(page.locator("#gridBody tr[data-i]")).toHaveCount(1);
   const cell = page.locator("#gridBody td.err.blank").first();
   await expect(cell).toHaveText("missing");
-  await expect(cell).toHaveAttribute("title", /BR .* Missing brand/);
+  await expect(cell).toHaveAttribute("title", /Low — Missing brand/);
+});
+
+test("rule codes (U1, OW, BR...) never show: issues, hovers, filters and Notes use the rule names", async ({ page }) => {
+  await open(page, DQ);
+  const CODE = /\b(U[1-8]|I[CADE]|C[ABC]|N[DI]|BR|OW|PM|OU)\b/;
+  await page.fill("#fQ", "dq u1 reconciliation");
+  await page.locator("#gridBody button.lnk").click();
+  await expect(page.locator("#issDlg .iss .rn").first()).toHaveText("CM reconciliation");
+  await expect(page.locator("#issDlg .iss .top").first()).not.toContainText(CODE);
+  await page.click("#issClose");
+  const hover = await page.locator('#gridBody td:has(button.lnk)').getAttribute("title");
+  expect(hover).toContain("CM reconciliation");
+  expect(hover.split("\n")[0]).not.toMatch(CODE);
+  const opts = await page.locator("#fld_rule .msname").allTextContents();
+  expect(opts).toContain("CM reconciliation");
+  for (const o of opts) expect(o).not.toMatch(/^[A-Z0-9]{2} /);
+  await expect(page.locator("#lab_rule")).toHaveText("Rule");
+  await page.click("#resetBtn");
+  await page.click("#notesBtn");
+  for (const n of await page.locator("#notesDlg .rname").allTextContents()) expect(n).not.toMatch(/^[A-Z0-9]{2} /);
 });
 
 test("View issues opens the full text for that project", async ({ page }) => {

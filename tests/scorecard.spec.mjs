@@ -44,6 +44,24 @@ test("no Excel buttons on Portfolio at a glance; one per table elsewhere", async
   expect(await page.locator(".expbtn").count()).toBeGreaterThan(2);
 });
 
+test("projects with longer execution time than forecasted have their own tab", async ({ page }) => {
+  await open(page, SCORE);
+  await expect(page.locator("#content h2", { hasText: /longer execution time than forecasted/i })).toHaveCount(0);
+  const n = await page.evaluate(() => S.last.review.length);
+  await expect(page.locator("#tabReviewN")).toHaveText(String(n));
+  await page.click("#tab_review");
+  await expect(page.locator("#tab_review")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#content h2")).toHaveText("Projects that have longer execution time than forecasted");
+  await expect(page.locator("#content .expbtn")).toHaveCount(1);
+  if (n) {
+    await page.click("#content tbody tr.drillable >> nth=0");
+    await expect(page.locator("#drTitle")).toBeVisible();
+    await page.keyboard.press("Escape");
+  }
+  await page.click("#tab_score");
+  await expect(page.locator("#content h2", { hasText: "Portfolio at a glance" })).toBeVisible();
+});
+
 test("Download all projects gives an .xlsx", async ({ page }) => {
   await open(page, SCORE);
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#dlAllBtn")]);

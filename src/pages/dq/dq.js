@@ -167,7 +167,7 @@ function runRules(P, roster, missing){
     p.cells = {}; p.why = {};
     p.ex.forEach(e => RULE[e.code].cols.forEach(k => {
       if (p.cells[k] === undefined || e.sev < p.cells[k]) p.cells[k] = e.sev;
-      (p.why[k] = p.why[k] || []).push(e.code + " · " + SEVS[e.sev] + " — " + RULE[e.code].name);
+      (p.why[k] = p.why[k] || []).push(SEVS[e.sev] + " — " + RULE[e.code].name);
     }));
   });
   return {off};
@@ -263,7 +263,7 @@ function parseRoster(buf){
 /* ---------- filters ----------
    Every filter is a multi-select: tick any number of values; nothing ticked means All. */
 const FKEYS = DIMS.map(d => d.key).concat(["sev", "rule"]);
-const FLABEL = {sev:"Severity", rule:"Rule code"}; DIMS.forEach(d => { FLABEL[d.key] = d.label; });
+const FLABEL = {sev:"Severity", rule:"Rule"}; DIMS.forEach(d => { FLABEL[d.key] = d.label; });
 function values(key){
   return Array.from(new Set(S.P.map(p => dimVal(p, key))))
     .sort((a, b) => a === NOT_SET ? 1 : b === NOT_SET ? -1 : a.localeCompare(b, "en", {numeric:true}));
@@ -275,7 +275,7 @@ function defaults(){
   return f;
 }
 const optionsFor = key => key === "sev" ? ["0", "1", "2", "3"] : key === "rule" ? RULES.map(r => r.code) : values(key);
-const optLabel = (key, v) => key === "sev" ? SEVS[+v] : key === "rule" ? v + " – " + RULE[v].name : v;
+const optLabel = (key, v) => key === "sev" ? SEVS[+v] : key === "rule" ? RULE[v].name : v;
 const inSel = (sel, v) => !sel.length || sel.indexOf(v) > -1;
 const exOk = (e, skip) => (skip === "sev" || inSel(S.f.sev, String(e.sev))) && (skip === "rule" || inSel(S.f.rule, e.code));
 function passes(p, skip){
@@ -447,7 +447,7 @@ function cellHtml(p, c, ci){
         const seen = {};
         inner = '<span class="dots">' + p.ex.filter(e => !seen[e.sev] && (seen[e.sev] = 1)).map(e => '<i class="dot s' + e.sev + '"></i>').join("") + '</span>'
           + '<button class="lnk" type="button" data-iss="1">View ' + p.n + ' issue' + (p.n > 1 ? "s" : "") + '</button>';
-        title = p.ex.map(e => SEVS[e.sev] + " · " + e.code + "\n" + e.text).join("\n\n");
+        title = p.ex.map(e => SEVS[e.sev] + " · " + RULE[e.code].name + "\n" + e.text).join("\n\n");
       } else inner = '<span class="pass">Pass</span>';
       break;
     case "ns": case "cs": case "nsInc": case "cmInc": case "cmAnn": case "cmNew": case "cmCann": txt = money(p[c.k]); break;
@@ -502,7 +502,7 @@ function openIssues(p){
   $("issBody").innerHTML = '<header><div style="min-width:0"><h3 id="issTitle">' + esc(p.name) + '</h3><div class="sub">' + esc(sub) + '</div></div>'
     + '<button class="btn" type="button" id="issClose">Close</button></header><div class="bd">'
     + '<div class="fin">' + fin.map(x => '<div><div class="k">' + x[0] + '</div><div class="v">' + esc(x[1] || "—") + '</div></div>').join("") + '</div>'
-    + (p.n ? p.ex.map(e => '<div class="iss i' + e.sev + '"><div class="top"><span class="sevpill s' + e.sev + '">' + SEVS[e.sev] + '</span><span class="cd">' + e.code + '</span><span class="rn">' + esc(RULE[e.code].name) + '</span></div><p>' + esc(e.text) + '</p></div>').join("")
+    + (p.n ? p.ex.map(e => '<div class="iss i' + e.sev + '"><div class="top"><span class="sevpill s' + e.sev + '">' + SEVS[e.sev] + '</span><span class="rn">' + esc(RULE[e.code].name) + '</span></div><p>' + esc(e.text) + '</p></div>').join("")
            : '<div class="pass">No issues found.</div>')
     + '</div>';
   $("issClose").onclick = () => $("issDlg").close();
@@ -521,7 +521,7 @@ function openNotes(){
   h += '<h4>What this dashboard measures</h4>'
     + pa("Every project record in the portfolio is tested against " + RULES.length + " financial and ownership data-quality rules (rule set v2.1). A rule that fires raises one exception on that project, so a project can hold several exceptions at once. “Projects needing review” counts projects with at least one exception; “Open exceptions” counts the exceptions themselves — the second number is always the larger of the two.")
     + pa("Project figures come from the project data (" + fmtN(S.P.length) + " projects) and the ownership rules from the resource roster"
-      + (ro ? " (" + fmtN(ro.people) + " people, " + fmtN(ro.active) + " active)." : ", which could not be read just now, so OW, PM and OU are off."));
+      + (ro ? " (" + fmtN(ro.people) + " people, " + fmtN(ro.active) + " active)." : ", which could not be read just now, so the three ownership checks are off."));
   h += '<h4>Default view</h4>' + pa("The dashboard opens on Project status = In Progress and Phase = Active Phase, matching the Innovation &amp; CI Portfolio Scorecard, so what you see first is live work rather than completed or cancelled records. Those filters can be set to All; Reset returns them to these defaults. With the current filters the view holds "
     + fmtN(st.n) + " projects, " + fmtN(st.flagged) + " of them flagged, carrying " + fmtN(st.exc) + " exceptions.");
   h += '<h4>Severity scale</h4><div class="sevkey">' + [
@@ -533,7 +533,7 @@ function openNotes(){
   h += '<h4>Exception summary by rule<span class="hint">whole portfolio · click a row to filter the grid to that rule</span></h4>'
     + '<div class="tblwrap"><table class="sum"><thead><tr><th>Rule</th><th>Severity</th><th>Scope</th><th>Test</th><th class="n">Exceptions</th><th class="n">Projects</th><th class="n">% of exceptions</th><th></th></tr></thead><tbody>'
     + order.map(r => '<tr data-rule="' + r.code + '" tabindex="0" class="' + (S.f.rule.indexOf(r.code) > -1 ? "on" : "") + '">'
-      + '<td><span class="bullet s' + r.sev + '"></span><span class="rname">' + r.code + " – " + esc(r.name) + '</span>' + (S.off[r.code] ? ' <span class="muted">(off: no ' + esc(S.off[r.code]) + ')</span>' : "") + '</td>'
+      + '<td><span class="bullet s' + r.sev + '"></span><span class="rname">' + esc(r.name) + '</span>' + (S.off[r.code] ? ' <span class="muted">(off: no ' + esc(S.off[r.code]) + ')</span>' : "") + '</td>'
       + '<td><span class="sevpill s' + r.sev + '">' + SEVS[r.sev] + '</span></td><td>' + esc(r.scope) + '</td><td>' + esc(r.test) + '</td>'
       + '<td class="n">' + fmtN(cnt[r.code]) + '</td><td class="n">' + fmtN(projs[r.code].size) + '</td>'
       + '<td class="n">' + (tot ? (cnt[r.code] / tot * 100).toFixed(1) : "0.0") + '%</td><td><span class="bar"><i style="width:' + (cnt[r.code] / mx * 100).toFixed(1) + '%"></i></span></td></tr>').join("")
@@ -541,11 +541,12 @@ function openNotes(){
   h += '<div class="params">' + [["vTOL_RECON", "$1"], ["vTOL_PCT_CM", "2 pts"], ["vTOL_ANNUAL", "$1,000"], ["vMATERIALITY", "$500,000"], ["vPLACEHOLDER_MAX", "$200"],
     ["vPCT_CM_UPPER / LOWER", "100 / 0"], ["vRATIO_GAP_THRESHOLD", "2.5×"], ["vCRQ_COST_SAVINGS_MAX", "$1,000"], ["vCRQ_INCR_NS_MAX", "$10,000"]]
     .map(x => '<span class="param">' + x[0] + ' = <b>' + x[1] + '</b></span>').join("") + '</div>';
-  const zero = RULES.filter(r => !cnt[r.code] && !S.off[r.code]).map(r => r.code);
+  const zero = RULES.filter(r => !cnt[r.code] && !S.off[r.code]).map(r => "“" + r.name + "”");
+  const nm = c => "“" + RULE[c].name + "”", nms = cs => cs.slice(0, -1).map(nm).join(", ") + " and " + nm(cs[cs.length - 1]);
   h += '<h4>Worth knowing</h4><ul>' + [
-    (zero.length ? zero.join(" and ") + (zero.length > 1 ? " raise" : " raises") + " no exceptions in this data. They are live rules, not retired ones — they are shown at zero rather than hidden." : "Every rule raises at least one exception in this data."),
-    "OU flags a product manager whose name matches no record in the resource roster. The roster holds three name formats (Last; First, Last, First and First Last) which the matching key normalises, so an OU is usually a spelling difference rather than a missing person — which is why it is scored Low.",
-    "U6 and U8 deliberately skip CRQ and Improve projects, and IC, IA, ID and IE apply to Improve projects only — a blank contribution margin is not an error for a cost-out project. Which group a project is in comes from its Strategic Bucket.",
+    (zero.length ? (zero.length > 1 ? zero.slice(0, -1).join(", ") + " and " + zero[zero.length - 1] : zero[0]) + (zero.length > 1 ? " raise" : " raises") + " no exceptions in this data. They are live rules, not retired ones — they are shown at zero rather than hidden." : "Every rule raises at least one exception in this data."),
+    nm("OU") + " flags a product manager whose name matches no record in the resource roster. The roster holds three name formats (Last; First, Last, First and First Last) which the matching key normalises, so this is usually a spelling difference rather than a missing person — which is why it is scored Low.",
+    nms(["U6", "U8"]) + " deliberately skip CRQ and Improve projects, and " + nms(["IC", "IA", "ID", "IE"]) + " apply to Improve projects only — a blank contribution margin is not an error for a cost-out project. Which group a project is in comes from its Strategic Bucket.",
     "Rule counts in this panel are for the whole portfolio. The summary bar and grid reflect the filters you have applied.",
     "Daily tracking stores one row per calendar date holding that day’s totals, so the trend moves when the project data changes."
   ].map(t => '<li>' + esc(t) + '</li>').join("") + '</ul></div>';
@@ -701,7 +702,7 @@ function renderCompare(){
   sum.innerHTML = chip(c.newEx, "new exception" + (c.newEx === 1 ? "" : "s")) + chip(c.fixed, "fixed") + chip(c.added, "project" + (c.added === 1 ? "" : "s") + " added") + chip(c.removed, "removed");
   tb.innerHTML = !c.rows.length ? '<tbody><tr><td class="flat">No changes since the ' + esc(dayLabel(c.date)) + ' snapshot.</td></tr></tbody>'
     : '<thead><tr><th>Project</th><th>Change</th><th>Rule</th><th>Severity</th><th>Detail</th></tr></thead><tbody>'
-      + c.rows.map(r => '<tr><td>' + esc(r.name) + '</td><td>' + r.change + '</td><td>' + esc(r.code) + '</td><td>' + (r.sev < 9 ? SEVS[r.sev] : "") + '</td><td class="detail">' + esc(r.text) + '</td></tr>').join("") + '</tbody>';
+      + c.rows.map(r => '<tr><td>' + esc(r.name) + '</td><td>' + r.change + '</td><td>' + (r.code ? esc(RULE[r.code].name) : "") + '</td><td>' + (r.sev < 9 ? SEVS[r.sev] : "") + '</td><td class="detail">' + esc(r.text) + '</td></tr>').join("") + '</tbody>';
 }
 $("seriesSel").onchange = renderTrack;
 
@@ -721,14 +722,14 @@ const PROJ_HEAD = ["Project name", "Project ID", "Project status", "Phase", "Spo
   "Project owner", "Product manager", "Total net sales", "Cost savings", "Incremental NS", "Project life", "Incremental CM$", "Annual CM$",
   "CM$_New", "CM$_Cann", "%CM_New", "%CM_Cann", "Exceptions", "Rules", "Status"];
 function projectSheets(list){
-  const pr = [PROJ_HEAD], ex = [["Project name", "Rule code", "Rule", "Severity", "Description"]];
+  const pr = [PROJ_HEAD], ex = [["Project name", "Rule", "Severity", "Description"]];
   list.forEach(p => {
     pr.push([p.name, p.id, p.status, p.phase, p.sponsor, p.ptype, p.bucket, p.stage, p.brand, p.owner, p.pm, p.ns, p.cs, p.nsInc, p.life,
-      p.cmInc, p.cmAnn, p.cmNew, p.cmCann, p.pctNew, p.pctCann, p.n, p.ex.map(e => e.code).join(" "), p.n ? "Review" : "Pass"]);
-    p.ex.forEach(e => ex.push([p.name, e.code, RULE[e.code].name, SEVS[e.sev], e.text]));
+      p.cmInc, p.cmAnn, p.cmNew, p.cmCann, p.pctNew, p.pctCann, p.n, p.ex.map(e => RULE[e.code].name).join("; "), p.n ? "Review" : "Pass"]);
+    p.ex.forEach(e => ex.push([p.name, RULE[e.code].name, SEVS[e.sev], e.text]));
   });
   const cnt = {}; S.P.forEach(p => p.ex.forEach(e => cnt[e.code] = (cnt[e.code] || 0) + 1));
-  const rl = [["Code", "Rule", "Severity", "Scope", "Test", "Exceptions (portfolio)"]].concat(RULES.map(r => [r.code, r.name, SEVS[r.sev], r.scope, r.test, cnt[r.code] || 0]));
+  const rl = [["Rule", "Severity", "Scope", "Test", "Exceptions (portfolio)"]].concat(RULES.map(r => [r.name, SEVS[r.sev], r.scope, r.test, cnt[r.code] || 0]));
   return [{name:"Projects", rows:pr}, {name:"Exceptions", rows:ex}, {name:"Rule reference", rows:rl}, filterSheet()];
 }
 function filterSheet(){
@@ -736,7 +737,7 @@ function filterSheet(){
   return {name:"Filters applied", rows:[["Filter", "Value"], ["Project status", all("status")], ["Phase", all("phase")],
     ["Show", S.scope === "flagged" ? "Flagged only" : "All projects"], ["Strategic bucket", all("bucket")], ["Project type", all("ptype")],
     ["Stage", all("stage")], ["Brand", all("brand")], ["Sponsor organization", all("sponsor")], ["Severity", all("sev")],
-    ["Rule code", S.f.rule.join(", ") || "All"], ["Net sales greater than", S.ns || 0], ["Project search", S.q || "(none)"], [],
+    ["Rule", all("rule")], ["Net sales greater than", S.ns || 0], ["Project search", S.q || "(none)"], [],
     ["Projects in view", st.n], ["Projects needing review", st.flagged], ["Open exceptions", st.exc], ["Critical", st.sev[0]], ["High", st.sev[1]],
     ["Medium", st.sev[2]], ["Low", st.sev[3]], [], ["Last refreshed", S.loadedAt ? S.loadedAt.toLocaleString("en-US") : ""],
     ["Rule set", "v2.1 — 21 checks"], ["Downloaded", new Date().toLocaleString("en-US")]]};
@@ -752,7 +753,7 @@ function exportLog(){
 }
 function exportCompare(){
   const c = S.cmp; if (!c || !c.rows) return;
-  const rows = [["Project", "Change", "Rule code", "Rule", "Severity", "Detail"]].concat(c.rows.map(r => [r.name, r.change, r.code, r.code ? RULE[r.code].name : "", r.sev < 9 ? SEVS[r.sev] : "", r.text]));
+  const rows = [["Project", "Change", "Rule", "Severity", "Detail"]].concat(c.rows.map(r => [r.name, r.change, r.code ? RULE[r.code].name : "", r.sev < 9 ? SEVS[r.sev] : "", r.text]));
   saveXlsx("Data_Quality_Changes_Since_" + c.date + ".xlsx", [{name:"Changes", rows}, {name:"About", rows:[["Compared", "Latest data vs the " + c.date + " snapshot"], ["Scope", trackScope()],
     ["New exceptions", c.newEx], ["Fixed", c.fixed], ["Projects added", c.added], ["Projects removed", c.removed], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
 }
@@ -777,7 +778,7 @@ async function fetchFile(file){
 }
 function warn(){
   const bar = $("warnbar"), by = {};
-  Object.keys(S.off).forEach(c => (by[S.off[c]] = by[S.off[c]] || []).push(c));
+  Object.keys(S.off).forEach(c => (by[S.off[c]] = by[S.off[c]] || []).push("“" + RULE[c].name + "”"));
   const msgs = Object.keys(by).map(k => k === "resource roster"
     ? "<b>Ownership checks are off</b> (" + by[k].join(", ") + "): the resource roster couldn’t be read just now."
     : "<b>" + by[k].join(", ") + " " + (by[k].length > 1 ? "are" : "is") + " off:</b> the project data has no “" + esc(k) + "” column.");

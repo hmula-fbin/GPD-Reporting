@@ -57,7 +57,7 @@
         if (/NPD bucket summary/.test(h) || /Movement by bucket/.test(h)){ const s=bucketSet(name); if(s){ fn=()=>open(s); label="Show the "+s.rows.length+" projects in "+s.t; } }
         else if (/Stage funnel/.test(h)){ const track=/CI track/.test(cap)?"CI":"NPD"; const s=stageSet(track,name); fn=()=>open(s); label="Show the "+s.rows.length+" projects in "+s.t; }
         else if (/Movement by stage/.test(h)){ const s=stageSet("NPD",name); fn=()=>open(s); label="Show the projects in "+s.t; }
-        else if (/Top 10|Candidates for review/.test(h)){ const r=byName(name); if(r){ fn=()=>openProject(r,null); label="Show details for "+name; } }
+        else if (/Top 10|longer execution time than forecasted/.test(h)){ const r=byName(name); if(r){ fn=()=>openProject(r,null); label="Show details for "+name; } }
         if (fn) mark(tr, fn, label);
       });
     });

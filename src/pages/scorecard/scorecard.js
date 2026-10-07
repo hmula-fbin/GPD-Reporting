@@ -35,6 +35,8 @@ const TRACKED = [
 
 /* ---------- state ---------- */
 const S = { rows:[], meta:null, present:{}, snaps:[], filters:null, threshold:GPD_CONFIG.reviewMonths, tab:"score", exp:{}, expSeq:0, origin:null, originErr:null, db:null, user:null, canWrite:null };
+const TABS = ["score","review","trend"];
+const TAB_NAME = {score:"Scorecard", review:"Longer than forecasted", trend:"Month-over-month trend"};
 const $ = id => document.getElementById(id);
 
 /* ---------- helpers ---------- */
@@ -394,7 +396,7 @@ function expContext(){
   });
   return [
     ["Innovation & CI Portfolio Scorecard"],
-    ["View", S.tab==="trend" ? "Month-over-month trend" : "Scorecard"],
+    ["View", TAB_NAME[S.tab]],
     ["Data updated", S.meta && S.meta.sourceModified ? new Date(S.meta.sourceModified).toLocaleString("en-US") : ""],
     ["Downloaded", new Date().toLocaleString("en-US")],
     ["Filters", on.length ? on.join("; ") : "none"],
@@ -446,7 +448,7 @@ function exportView(){
     if (e && rows.length) sheets.push({name:e.name, rows:rows});
   });
   sheets.push({name:"About", rows: expContext()});
-  saveXlsx((S.tab==="trend"?"portfolio-trend-":"portfolio-scorecard-")+stamp()+".xlsx", sheets);
+  saveXlsx(({trend:"portfolio-trend-", review:"portfolio-longer-than-forecasted-"}[S.tab]||"portfolio-scorecard-")+stamp()+".xlsx", sheets);
 }
 /* Every project in the data, plus the ones in the current view. */
 const PROJECT_COLS = [["Project","name"],["Status","status"],["Bucket","bucket"],["Stage","stage"],["Owner","owner"],
@@ -484,13 +486,15 @@ function render(){
   /* tab chrome */
   $("tabsrow").hidden = false;
   $("tabTrendN").textContent = hist.length;
-  $("tab_score").classList.toggle("on", S.tab!=="trend");
-  $("tab_trend").classList.toggle("on", S.tab==="trend");
-  $("tab_score").setAttribute("aria-selected", S.tab!=="trend");
-  $("tab_trend").setAttribute("aria-selected", S.tab==="trend");
+  $("tabReviewN").textContent = c.review.length;
+  TABS.forEach(t => {
+    $("tab_"+t).classList.toggle("on", S.tab===t);
+    $("tab_"+t).setAttribute("aria-selected", S.tab===t);
+  });
   document.querySelector(".rail").hidden = false;
 
-  $("content").innerHTML = S.tab==="trend" ? trendView(hist) : scorecardView(c,hist,prev,filtered);
+  $("content").innerHTML = S.tab==="trend" ? trendView(hist)
+    : S.tab==="review" ? reviewView(c) : scorecardView(c,hist,prev,filtered);
   $("content").hidden = false;
   $("emptyState").hidden = true;
   const sb = $("snapBtn"); if (sb) sb.onclick = () => captureSnapshot(true);
@@ -547,7 +551,7 @@ function scorecardView(c,hist,prev,filtered){
     ["NPD projects", c.kpi.npdN, "of "+c.denom+" NPD + CI + CRQ", false],
     ["CI projects", c.kpi.ciN, c.kpi.crqN+" CRQ alongside", false],
     ["Avg time to market \u2014 forecast", mo(c.kpi.avgFc)+" mo", "target "+mo(c.kpi.avgTgt)+" mo", c.kpi.avgFc>c.kpi.avgTgt],
-    ["Over the "+S.threshold+"-month review line", c.kpi.review, "candidates for review", c.kpi.review>0],
+    ["Over the "+S.threshold+"-month review line", c.kpi.review, "longer execution than forecasted", c.kpi.review>0],
     ["NPD rows missing annualized NS", c.kpi.missingNs, "data gaps to close", c.kpi.missingNs>0]
   ];
   S.lastKpiId = null;
@@ -582,18 +586,20 @@ function scorecardView(c,hist,prev,filtered){
     + '<span class="act">'+expBtn(topCiId,"the top 10 CI projects")+'</span></div>'
     + projectTable(c.topCi,"Annualized NS",topCiId)+'</section>';
 
-  /* review */
-  const reviewId = expId("Candidates for review over "+S.threshold+" months","table");
-  h += '<section><div class="shead"><h2>Candidates for review</h2><span class="sub">forecast execution time over '+S.threshold+' months</span>'
-    + '<span class="act">'+expBtn(reviewId,"the review candidates")+'</span></div>'
-    + reviewTable(c.review,S.threshold,reviewId)+'</section>';
-
   /* integrity */
   h += '<section><div class="shead"><h2>Data check</h2><span class="sub">fields the scorecard needs for every project</span></div><div class="integrity">'
     + TRACKED.map(t => '<span class="ipill '+(S.present[t[1]]?"good":"bad")+'">'+esc(t[0])+(S.present[t[1]]?"":" \u2014 missing")+'</span>').join("")
     + '</div></section>';
 
   return h;
+}
+
+/* Its own tab: projects whose forecast execution time runs past the review line. */
+function reviewView(c){
+  const reviewId = expId("Longer than forecasted over "+S.threshold+" months","table");
+  return '<section><div class="shead"><h2>Projects that have longer execution time than forecasted</h2><span class="sub">forecast execution time over '+S.threshold+' months</span>'
+    + '<span class="act">'+expBtn(reviewId,"the projects with longer execution time than forecasted")+'</span></div>'
+    + reviewTable(c.review,S.threshold,reviewId)+'</section>';
 }
 
 function trendView(histAll){
@@ -1182,8 +1188,7 @@ function setTab(t){
   window.scrollTo({top:0, behavior:"instant"});
   prepareTrend();
 }
-$("tab_score").onclick = ()=>setTab("score");
-$("tab_trend").onclick = ()=>setTab("trend");
+TABS.forEach(t => $("tab_"+t).onclick = ()=>setTab(t));
 
 $("reloadBtn").onclick = () => reloadData();
 $("dlAllBtn").onclick = () => { if (S.rows.length){ exportAllProjects(); flashBtn($("dlAllBtn")); } };

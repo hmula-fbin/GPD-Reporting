@@ -289,7 +289,7 @@
     if (dm){ var dd=dimOf(" "+dm[2]+" "); if(dd) return distinct(d,rs,f,dd); }
     if (/percent|percentage|share of|proportion|what fraction|\bratio\b|%/.test(q)){ var sh=share(d,d.rows,P); if(sh) return sh; }
     if (!rs.length) return {html:'<p>No projects match '+esc(scopeTxt(f)||"that")+' in '+esc(d.scope)+'.</p>', val:0, follow:["Summarize the portfolio","Projects by business unit"]};
-    if (/\blate\b|delay|behind|slip|at risk|\brisk|review line|review candidates|over (the |their )?target|overdue|too long|over the line/.test(q) && !f.some(function(x){ return x.k==="_cmp"; })) return late(d,rs,f,P);
+    if (/\blate\b|delay|behind|slip|at risk|\brisk|review line|review candidates|longer than forecast|over (the |their )?target|overdue|too long|over the line/.test(q) && !f.some(function(x){ return x.k==="_cmp"; })) return late(d,rs,f,P);
     if (P.by) return breakdown(d,rs,f,P.by,P);
     if (/how many|number of|\bcount\b|how much projects/.test(q)){
       var npdN=rs.filter(function(r){ return r._npd; }).length, isB=f.some(function(x){ return x.k==="bucket"||x.k==="_npd"; });
