@@ -1,0 +1,9 @@
+ResourceUID,ResourceName,ResourceEmailAddress,ResourceNTAccount,ResourceIsActive,ResourceIsGeneric,ResourceCount,Resource Departments,Resource Sub Organization,Resource Primary Role,Org Resource Pool,Resource Organization,Org Sub Resource Pool,Resource Location,Allocation Threshold,Created,Modified,Created_by,Modified_by
+R-001,"Rivera, Ana",,,TRUE,FALSE,1,,,,,,,,,,,,
+R-002,"Okafor, Ben",,,TRUE,FALSE,1,,,,,,,,,,,,
+R-003,Lindqvist; Chen,,,TRUE,FALSE,1,,,,,,,,,,,,
+R-004,Dara Moreau,,,TRUE,FALSE,1,,,,,,,,,,,,
+R-005,"Tanaka, Eli",,,TRUE,FALSE,1,,,,,,,,,,,,
+R-006,"Novak, Fay",,,FALSE,FALSE,1,,,,,,,,,,,,
+R-007,"Brennan, Gus",,,FALSE,FALSE,1,,,,,,,,,,,,
+R-008,"Haddad, Hana",,,TRUE,FALSE,1,,,,,,,,,,,,

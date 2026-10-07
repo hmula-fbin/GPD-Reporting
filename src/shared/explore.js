@@ -64,7 +64,7 @@
   /* The best table in a file: the sheet with the most data, its header being the row (in the first 30)
      with the most text labels. */
   function parse(buf, file){
-    var wb = XLSX.read(buf, {type:"array", cellDates:true}), best = null;
+    var wb = gpdReadBook(buf), best = null;
     wb.SheetNames.forEach(function(sn){
       var g = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, blankrows:false, defval:null});
       var hdr = -1, hn = 1;

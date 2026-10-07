@@ -7,9 +7,9 @@
   "tenantUrl": "https://fbinportal.sharepoint.com",
   "pagesLibrary": "Report Pages",
   "dataLibrary": "Report Files",
-  "dataFileName": "Pipeline Data.xlsx",
-  "projectFileName": "Project Data.xlsx",
-  "resourceFileName": "Resource Data.xlsx",
+  "dataFileName": "Pipeline Data.csv",
+  "projectFileName": "Project Data.csv",
+  "resourceFileName": "Resource Data.csv",
   "reloadMinutes": 60,
   "reviewMonths": 30,
   "pnpClientId": ""

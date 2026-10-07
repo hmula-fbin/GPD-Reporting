@@ -4,12 +4,12 @@
   SharePoint REST calls the pages make, so you can develop without deploying.
 
     node tools/serve.mjs --env dev                     -> http://localhost:5173/  (opens Home)
-    node tools/serve.mjs --env dev --data data/Pipeline.xlsx --port 5180
+    node tools/serve.mjs --env dev --data "data/Pipeline Data.csv" --port 5180
 
-  --data  workbook to serve as the data file (default: tests/fixtures/pipeline-fixture.xlsx).
+  --data  file to serve as the data file (default: tests/fixtures/pipeline-fixture.csv).
           Put real extracts in data/ - that folder is git-ignored.
-  --project / --resource  the two Data Quality files (default: tests/fixtures/dq-*-fixture.xlsx).
-  --snapshot  served as the project file's nightly copies for the last two days (default: tests/fixtures/dq-project-prev-fixture.xlsx).
+  --project / --resource  the two Data Quality files (default: tests/fixtures/dq-*-fixture.csv).
+  --snapshot  served as the project file's nightly copies for the last two days (default: tests/fixtures/dq-project-prev-fixture.csv).
   --user  display name returned by /_api/web/currentuser (default "Preview, Alex").
 */
 import http from "node:http";
@@ -22,13 +22,13 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const env = opt("env", "dev");
 const port = Number(opt("port", process.env.PORT || 5173));
-const dataFile = path.resolve(ROOT, opt("data", "tests/fixtures/pipeline-fixture.xlsx"));
+const dataFile = path.resolve(ROOT, opt("data", "tests/fixtures/pipeline-fixture.csv"));
 const user = opt("user", "Preview, Alex");
 // Data Quality page: its two files (synthetic by default; real extracts go in data/)
-const projectFile = path.resolve(ROOT, opt("project", "tests/fixtures/dq-project-fixture.xlsx"));
-const resourceFile = path.resolve(ROOT, opt("resource", "tests/fixtures/dq-resource-fixture.xlsx"));
+const projectFile = path.resolve(ROOT, opt("project", "tests/fixtures/dq-project-fixture.csv"));
+const resourceFile = path.resolve(ROOT, opt("resource", "tests/fixtures/dq-resource-fixture.csv"));
 // the nightly snapshots of the project file: yesterday and the day before (Eastern dates), both from this file
-const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-prev-fixture.xlsx"));
+const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-prev-fixture.csv"));
 const easternDate = (daysAgo) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
   .format(new Date(Date.now() - daysAgo * 864e5));
 const snapshotNames = (project) => { const dot = project.lastIndexOf("."); return [2, 1].map((d) => project.slice(0, dot) + " " + easternDate(d) + project.slice(dot)); };

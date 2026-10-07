@@ -82,7 +82,7 @@ function pickSheet(wb){
   return null;
 }
 function parseWorkbook(buf, fileName){
-  const wb = XLSX.read(buf,{type:"array",cellDates:true});
+  const wb = gpdReadBook(buf);
   const sheetName = pickSheet(wb);
   if (!sheetName) throw new Error("No PIPELINE tab found in this workbook. Check the file and try again.");
   const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,blankrows:false,defval:null});

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /*
-  Writes the SYNTHETIC files the Data Quality page reads in the preview and the tests:
-    tests/fixtures/dq-project-fixture.xlsx    same columns as the real project extract, invented projects
-    tests/fixtures/dq-resource-fixture.xlsx   same columns as the real resource extract, invented people
-    tests/fixtures/dq-project-prev-fixture.xlsx   the previous day's snapshot of the project file (served as the nightly copies)
+  Writes the SYNTHETIC files (CSV, like the real ones) the Data Quality page reads in the preview and the tests:
+    tests/fixtures/dq-project-fixture.csv     same columns as the real project extract, invented projects
+    tests/fixtures/dq-resource-fixture.csv    same columns as the real resource extract, invented people
+    tests/fixtures/dq-project-prev-fixture.csv   the previous day's snapshot of the project file (served as the nightly copies)
   Real company data never goes into git. Deterministic: same file every run, so the tests are stable.
 
   Every "DQ <code>" project is built to break exactly the rules listed in EXPECT (tests/dq.spec.mjs
@@ -14,7 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import XLSX from "./lib/sheetjs.mjs";
+import { toCsv } from "./lib/csv.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -134,16 +134,14 @@ const people = [RESOURCE_HEADER].concat(PEOPLE.map((p) => {
   return r;
 }));
 
-function write(file, sheet, aoa) {
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa, { cellDates: true }), sheet);
+function write(file, aoa) {
   const out = path.join(ROOT, "tests/fixtures", file);
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+  fs.writeFileSync(out, toCsv(aoa));
   console.log("wrote " + path.relative(ROOT, out) + " (" + (aoa.length - 1) + " synthetic rows)");
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  write("dq-project-fixture.xlsx", "Projects", rows);
-  write("dq-resource-fixture.xlsx", "Resources", people);
-  write("dq-project-prev-fixture.xlsx", "Projects", prevRows);
+  write("dq-project-fixture.csv", rows);
+  write("dq-resource-fixture.csv", people);
+  write("dq-project-prev-fixture.csv", prevRows);
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Writes tests/fixtures/pipeline-fixture.xlsx: a SYNTHETIC workbook with the same layout as the
+  Writes tests/fixtures/pipeline-fixture.csv: a SYNTHETIC data file (CSV, like the real one) with the same layout as the
   real pipeline extract (header row a few rows down, same column names) but invented projects.
   Real company data never goes into git. Deterministic: same seed -> same file -> stable tests.
 
@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import XLSX from "./lib/sheetjs.mjs";
+import { toCsv } from "./lib/csv.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -59,9 +59,7 @@ for (let i = 1; i <= N; i++) {
     st[0], st[1], start, finish, finish.getFullYear(), tgt, fc, life, ns === null ? null : ns * life, ns, cm * life, cm, ns ? ns * life : 0, ns ? Math.round(ns * 0.8) : 0,
     cm * life, Math.round(cm * 0.8), ns ? cm / ns : null, ns ? 0.8 : null, (inv = money(1e4, 2.5e6)), Math.round(inv * 0.35), Math.round(inv * 0.5)]);
 }
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa, { cellDates: true }), "PIPELINE");
-const out = path.join(ROOT, "tests/fixtures/pipeline-fixture.xlsx");
+const out = path.join(ROOT, "tests/fixtures/pipeline-fixture.csv");
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, XLSX.write(wb, { type: "buffer", bookType: "xlsx", cellDates: true }));
+fs.writeFileSync(out, toCsv(aoa));
 console.log("wrote " + path.relative(ROOT, out) + " (" + N + " synthetic projects)");

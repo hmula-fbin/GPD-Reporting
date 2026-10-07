@@ -210,7 +210,7 @@ const dimVal = (p, k) => p[k] || NOT_SET;
 /* ---------- reading the files ---------- */
 /* The first sheet whose header row (within the first 30 rows) has the given column. */
 function findTable(buf, mustHave){
-  const wb = XLSX.read(buf, {type:"array", cellDates:true}), want = lk(mustHave);
+  const wb = gpdReadBook(buf), want = lk(mustHave);
   for (const n of wb.SheetNames){
     const g = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, blankrows:false, defval:null});
     for (let i = 0; i < Math.min(g.length, 30); i++)

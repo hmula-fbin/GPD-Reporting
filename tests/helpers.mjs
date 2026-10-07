@@ -10,7 +10,7 @@ export const SCORE = MANIFEST.pagesUrl + "Portfolio_Scorecard.aspx";
 export const DQ = MANIFEST.pagesUrl + "Data_Quality.aspx";
 
 /* Words that must never be visible: the data file name or where the data lives. */
-export const FORBIDDEN = /pipeline data|report files|sharepoint|\.xlsx|network drive|workbook|upload|import/i;
+export const FORBIDDEN = /pipeline data|report files|sharepoint|\.xlsx|\.csv|network drive|workbook|upload|import/i;
 
 /* Open a page, collect script errors, wait for the data to land. */
 export async function open(page, url, opts = {}) {

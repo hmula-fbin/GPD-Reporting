@@ -66,7 +66,7 @@ Each site needs:
 
 ## Testing
 
-- `tools/serve.mjs` serves `dist/dev/` at the same URL path SharePoint uses and fakes the three REST calls. Data comes from `tests/fixtures/pipeline-fixture.xlsx`, which is synthetic, deterministic and safe to commit.
+- `tools/serve.mjs` serves `dist/dev/` at the same URL path SharePoint uses and fakes the three REST calls. Data comes from `tests/fixtures/pipeline-fixture.csv`, which is synthetic, deterministic and safe to commit.
 - `tests/*.spec.mjs` run in Playwright on desktop/light and mobile/dark:
   - page health (errors, overflow, menu, theme, env badge, no data-source words);
   - scorecard requirements (status default, left filters, exports, drill-down, bucket hover, one KPI colour, refresh);

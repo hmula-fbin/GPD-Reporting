@@ -4,13 +4,13 @@ The Data Quality Dashboard's **Daily tracking** tab is built from dated copies o
 
 ```
 Report Files/
-  Project Data.xlsx              <- the live file (refreshed every day at 5 PM Eastern)
-  Project Data 2026-10-06.xlsx   <- tonight's snapshot
-  Project Data 2026-10-05.xlsx   <- last night's snapshot
+  Project Data.csv               <- the live file (refreshed every day at 5 PM Eastern)
+  Project Data 2026-10-06.csv    <- tonight's snapshot
+  Project Data 2026-10-05.csv    <- last night's snapshot
   ...
 ```
 
-The page finds the copies by their names (`<project file name> YYYY-MM-DD.xlsx`), so new copies are picked up automatically.
+The page finds the copies by their names (`<project file name> YYYY-MM-DD.csv`), so new copies are picked up automatically.
 - **Tracking:** one row per snapshot, plus a **Now** row from the live file.
 - **Changes since the previous day:** compares the live file with the latest snapshot from an earlier day, project by project. It lists new exceptions, fixed exceptions, and projects added or removed.
 - **Copilot:** ignores the copies, so it doesn't count projects once per day.
@@ -32,18 +32,18 @@ Do this for the Dev site (`/sites/GPDReportingsbx`) first, then for Prod (`/site
    - **At these minutes:** `0`
 3. Add the action **SharePoint, Get file content using path**:
    - **Site Address:** the site, for example `https://fbinportal.sharepoint.com/sites/GPDReportingsbx`
-   - **File Path:** `/Report Files/Project Data.xlsx`
+   - **File Path:** `/Report Files/Project Data.csv`
 4. Add the action **SharePoint, Create file**:
    - **Site Address:** the same site
    - **Folder Path:** `/Report Files`
    - **File Name:** switch to the expression editor (fx) and paste:
      ```
-     concat('Project Data ', formatDateTime(convertFromUtc(utcNow(), 'Eastern Standard Time'), 'yyyy-MM-dd'), '.xlsx')
+     concat('Project Data ', formatDateTime(convertFromUtc(utcNow(), 'Eastern Standard Time'), 'yyyy-MM-dd'), '.csv')
      ```
    - **File Content:** pick **File Content** from step 3.
-   - In the action's **Settings**, set **Allow chunking** on, because the file is over 2 MB.
+   - In the action's **Settings**, set **Allow chunking** on, because the file can be several MB.
 5. **Save**, then **Test**, **Manually**, **Run flow**. This is the test run.
-   - Check that **Project Data <today's date>.xlsx** appears in Report Files.
+   - Check that **Project Data <today's date>.csv** appears in Report Files.
    - Open the Data Quality Dashboard and go to **Daily tracking**. Today's snapshot appears as a row. From tomorrow, "Changes since the previous day" fills in.
 
 A test run made during the day overwrites nothing. The 11 PM run creates the same name again and replaces it with the evening copy. If Create file complains that the file exists, open the action's **Settings** and turn **Allow overwrite** on, or add a **Delete file** step for the same path before it.

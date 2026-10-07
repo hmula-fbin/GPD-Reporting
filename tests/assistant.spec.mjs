@@ -47,9 +47,9 @@ function sheetRows(file, mustHave) {
   }
   return [];
 }
-const PROJ = sheetRows("tests/fixtures/dq-project-fixture.xlsx", "ProjectName");
-const PEOPLE = sheetRows("tests/fixtures/dq-resource-fixture.xlsx", "ResourceName");
-const PIPE = sheetRows("tests/fixtures/pipeline-fixture.xlsx", "Project Name");
+const PROJ = sheetRows("tests/fixtures/dq-project-fixture.csv", "ProjectName");
+const PEOPLE = sheetRows("tests/fixtures/dq-resource-fixture.csv", "ResourceName");
+const PIPE = sheetRows("tests/fixtures/pipeline-fixture.csv", "Project Name");
 const ask = (page, q) => page.evaluate((q) => window.gpdAsk.answerAll(q).then((a) => ({ val: a.val, html: a.html, ds: a.ds })), q);
 
 test("Copilot filters any column of another data file", async ({ page }) => {

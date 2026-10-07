@@ -29,7 +29,7 @@
   function num(v){ if(v==null||v==="") return null; if(typeof v==="number") return isFinite(v)?v:null; var n=parseFloat(String(v).replace(/[$,%\s]/g,"")); return isFinite(n)?n:null; }
   function when(d){ return new Date(d).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
   function compute(buf){
-    var wb=XLSX.read(buf,{type:"array",cellDates:true}), grid=null, hdr=-1;
+    var wb=gpdReadBook(buf), grid=null, hdr=-1;
     for(var s=0;s<wb.SheetNames.length && hdr<0;s++){
       var g=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[s]],{header:1,blankrows:false,defval:null});
       for(var i=0;i<Math.min(g.length,30);i++){ var row=(g[i]||[]).map(function(x){return nk(x).toLowerCase();});

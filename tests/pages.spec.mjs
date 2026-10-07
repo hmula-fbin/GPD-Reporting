@@ -200,3 +200,17 @@ for (const [name, url] of [["Scorecard", SCORE], ["Data Quality", DQ]]) {
     release();
   });
 }
+
+test("data files are read as CSV (dates land on the right day), and an Excel file still reads", async ({ page }) => {
+  await open(page, HOME);
+  const r = await page.evaluate(() => {
+    const grid = (wb) => XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: null });
+    const enc = (s) => new TextEncoder().encode(s).buffer;
+    const csv = grid(gpdReadBook(enc("﻿Name,Finish,Other,Money,Active\nCafé Tap,2027-01-05,1/5/2027,\"1,234.50\",TRUE\n")))[1];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Name"], ["From Excel"]]), "S");
+    const xl = grid(gpdReadBook(XLSX.write(wb, { type: "array", bookType: "xlsx" })))[1];
+    const day = (d) => [d.getFullYear(), d.getMonth() + 1, d.getDate()].join("-");
+    return { name: csv[0], iso: day(csv[1]), us: day(csv[2]), money: csv[3], active: csv[4], xl: xl[0] };
+  });
+  expect(r).toEqual({ name: "Café Tap", iso: "2027-1-5", us: "2027-1-5", money: 1234.5, active: true, xl: "From Excel" });
+});
