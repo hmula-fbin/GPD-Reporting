@@ -53,7 +53,7 @@ The step-by-step version, with exact Claude commands, is in [TEAM-GUIDE.md](TEAM
 
    For Dev and Test you can seed the data file:
    ```powershell
-   pwsh ./deploy/Deploy-Portfolio.ps1 -Env test -UploadData "data/Pipeline Data.xlsx"
+   pwsh ./deploy/Deploy-Portfolio.ps1 -Env test -UploadData "data/Pipeline Data.csv"
    ```
 3. **Permissions**:
    - viewers need Read on both libraries;

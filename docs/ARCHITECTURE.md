@@ -12,6 +12,9 @@ Browser (signed in to Microsoft 365)
 SheetJS parses the PIPELINE sheet in the browser -> rows -> filters / KPIs / drill-down / trend / assistant
 ```
 
+Data_Quality.aspx works the same way but reads two files (`projectFileName` and `resourceFileName` in `config/<env>.json`),
+runs the 21 rules in `src/pages/dq/dq.js` on every project, and keeps one tracking row per day in the browser (`fbin_dq_snaps_v1`).
+
 - **Security**: every request runs as the viewer, using their existing SharePoint session. A user who can't read the data file sees a friendly error, not the data. There are no stored credentials, no service account and no server.
 - **Freshness**: the data loads on open, every `reloadMinutes` while the page stays open, and on **Refresh now**. When the data owners replace the file, everyone sees the new figures.
 - **Trend**: the page keeps one snapshot per month in the viewer's browser (localStorage, 24 months). It is per browser by design.
@@ -63,7 +66,7 @@ Each site needs:
 
 ## Testing
 
-- `tools/serve.mjs` serves `dist/dev/` at the same URL path SharePoint uses and fakes the three REST calls. Data comes from `tests/fixtures/pipeline-fixture.xlsx`, which is synthetic, deterministic and safe to commit.
+- `tools/serve.mjs` serves `dist/dev/` at the same URL path SharePoint uses and fakes the three REST calls. Data comes from `tests/fixtures/pipeline-fixture.csv`, which is synthetic, deterministic and safe to commit.
 - `tests/*.spec.mjs` run in Playwright on desktop/light and mobile/dark:
   - page health (errors, overflow, menu, theme, env badge, no data-source words);
   - scorecard requirements (status default, left filters, exports, drill-down, bucket hover, one KPI colour, refresh);

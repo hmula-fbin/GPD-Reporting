@@ -97,3 +97,97 @@ a.navitem:focus-visible{outline:2px solid var(--brand);outline-offset:0}
 /* environment badge (Dev / Test only) */
 .envbadge{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.08em;
   background:#E8590C;color:#fff;margin-left:4px}
+
+/* resizable table columns (shared/tables.js) */
+.colgrip{position:absolute;top:0;right:-3px;width:8px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
+.colgrip::after{content:"";position:absolute;top:22%;bottom:22%;left:3px;width:2px;border-radius:1px;background:var(--steel);opacity:0;transition:opacity .12s}
+th:hover > .colgrip::after,.colgrip:active::after{opacity:.75}
+th:last-child > .colgrip{right:0;width:6px}
+table.rz-fixed th,table.rz-fixed td{overflow:hidden;text-overflow:ellipsis}
+
+/* Summary tables fit their card on every dashboard: headings wrap instead of forcing a sideways
+   scroll, and rows are only as tall as their content. A person can still widen any column
+   (shared/tables.js); very narrow screens scroll sideways. */
+.tblwrap{overflow-x:auto}
+.tblwrap > table:not(.rz-fixed){width:100%;min-width:0}
+.tblwrap thead th{white-space:normal;vertical-align:bottom;line-height:1.25}
+.tblwrap tbody td:first-child{min-width:150px}
+.tblwrap .pctcell{gap:6px}
+.tblwrap .pctcell .bar{min-width:36px}
+@media (max-width:1700px){ .funnels{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){ .tblwrap > table:not(.rz-fixed){min-width:600px} }
+
+/* every table box can be resized from the handle at its bottom-right corner (shared/tables.js) */
+.rz-box{min-width:260px;min-height:90px}
+.boxgrip{position:absolute;width:16px;height:16px;cursor:nwse-resize;z-index:5;touch-action:none;border-radius:0 0 9px 0;opacity:.7;
+  background:linear-gradient(135deg,transparent 0 50%,var(--ink-3) 50% 57%,transparent 57% 68%,var(--ink-3) 68% 75%,transparent 75% 86%,var(--ink-3) 86% 93%,transparent 93%)}
+.boxgrip:hover{opacity:1}
+@media print{.boxgrip,.colgrip{display:none}}
+
+/* ===================== Responsive: phones, tablets, laptops, desktops =====================
+   Breakpoints follow common device classes: <=560 phone, <=767 large phone, <=1099 tablet / small
+   laptop (filters fold away), >=1100 laptop / desktop (filters in the left panel), up to 1920 wide. */
+.railtoggle{display:none}
+@media (max-width:1099px){
+  .railtoggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 16px;border:0;border-bottom:1px solid var(--rule);
+    background:var(--panel);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;text-align:left}
+  .railtoggle .i{width:17px;height:17px;flex:none}
+  .railtoggle .railcount{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--kpi,var(--steel));color:var(--panel);font-size:11px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .railtoggle .railcount[hidden]{display:none}
+  .railtoggle .railview{margin-left:auto;font-weight:500;font-size:12px;color:var(--ink-3)}
+  .railtoggle .chev{transition:transform .15s}
+  .rail.open .railtoggle .chev{transform:rotate(180deg)}
+  .railtoggle:focus-visible{outline:2px solid var(--steel);outline-offset:-2px}
+  .rail:not(.open) #railInner{display:none}
+  .rail{position:static}
+}
+/* the app bar: drop the breadcrumb before anything collides */
+@media (max-width:1023px){ .crumbs{display:none} }
+/* phones: masthead buttons share the width two by two; inputs at 16px so the phone does not zoom */
+@media (max-width:560px){
+  .mast-right{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-left:0}
+  .mast-right .btn{justify-content:center;min-width:0}
+  .mast-right .btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .masthead h1{font-size:22px!important}
+}
+@media (max-width:767px){ input,select,textarea{font-size:16px!important} }
+/* section titles: on small screens the note goes on its own line under the title */
+@media (max-width:767px){ .shead{flex-wrap:wrap;row-gap:4px} .shead .sub{flex-basis:100%;order:3} .shead .act{margin-left:auto} }
+/* touch screens: controls at least 40px tall */
+@media (pointer:coarse){
+  .btn,.msbtn,.fld select,.fld input,.seg button,.tab,.expbtn{min-height:40px}
+  .msopt{min-height:36px}
+}
+/* big screens: use the width, up to 1920px */
+@media (min-width:1100px){
+  .masthead .wrap,footer.wrap,.appbar-in,.layout{max-width:1920px!important}
+}
+
+/* ===================== Freeze panes (every scrollable table, every dashboard) =====================
+   Like frozen panes in Excel: the heading row stays at the top when a table scrolls up or down, and
+   the first column (project / bucket / stage) stays at the left when it scrolls sideways. Long tables
+   scroll inside their box (at most 80% of the screen tall), so their scroll bars stay in view. */
+.tblwrap{max-height:80vh}
+.tblwrap thead th,.gridwrap thead th{position:sticky;top:0;z-index:4}
+.tblwrap thead th:first-child,.gridwrap thead th:first-child,
+.tblwrap tbody td:first-child,.gridwrap tbody td:first-child{position:sticky;left:0}
+.tblwrap thead th:first-child,.gridwrap thead th:first-child{z-index:6}
+.tblwrap tbody td:first-child,.gridwrap tbody td:first-child{z-index:3;background-color:var(--panel);border-right:1px solid var(--rule-2)}
+.tblwrap tbody tr.sub td:first-child,.tblwrap tbody tr.alt td:first-child{background-color:var(--panel-2)}
+.tblwrap tbody tr:hover td:first-child{background-color:color-mix(in srgb,var(--steel) 7%,var(--panel))}
+.gridwrap tbody tr:hover td:first-child{background-color:var(--panel-2)}
+.gridwrap tbody tr.sp td{position:static;border-right:0}
+
+/* sideways-scroll arrows on wide tables (shared/tables.js) */
+.tblarrow{position:absolute;z-index:8;width:26px;height:26px;border-radius:50%;padding:0;cursor:pointer;display:grid;place-items:center;
+  background:var(--kpi,var(--steel));color:var(--panel);border:2px solid var(--panel);
+  box-shadow:0 0 0 1px var(--kpi,var(--steel)),0 4px 14px -2px rgba(0,0,0,.45);transition:transform .12s,filter .12s}
+.tblarrow svg{width:14px;height:14px;stroke-width:2.8}
+.tblarrow.over{opacity:.55}
+.tblarrow.over:hover,.tblarrow.over:focus-visible{opacity:1}
+.tblarrow[hidden]{display:none}
+.tblarrow:hover{transform:scale(1.08);filter:brightness(1.1)}
+.tblarrow:active{transform:scale(.96)}
+.tblarrow:focus-visible{outline:3px solid var(--amber,#DBA430);outline-offset:2px}
+@media print{.tblarrow{display:none}}

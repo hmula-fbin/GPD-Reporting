@@ -8,6 +8,6 @@ Prepare the approved release for manual upload to Prod. Do not upload anything y
 3. Run `node tools/package.mjs --env prod` (the user approves the command).
 4. Walk them through UPLOAD-STEPS.txt:
    - custom scripts must be on for the Prod site today;
-   - drag both files into the library and choose Replace;
+   - drag all three page files into the library and choose Replace;
    - open both pages, press Refresh now, and ask one question.
 5. Remind them how to undo: Version history > Restore in the library.

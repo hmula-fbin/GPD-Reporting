@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Data Quality Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="{{asset:favicon.svg}}">
+<!-- @js vendor/xlsx.full.min.js -->
+<meta name="gpd-build" content="{{VERSION}} {{COMMIT}} {{ENV}} {{BUILD_TIME}}">
+<!-- @css pages/scorecard/scorecard.css pages/scorecard/scorecard-layout.css pages/scorecard/scorecard-colours.css pages/dq/dq.css shared/shell.css shared/ask.css -->
+</head>
+<body data-page="dq">
+
+<!-- @include partials/appbar.html crumb="Data Quality Dashboard" -->
+<header class="masthead">
+  <div class="wrap">
+    <div class="mast-title">
+      <h1>Data Quality Dashboard</h1>
+      <p id="subline">Project &amp; resource data quality checks</p>
+    </div>
+    <div class="mast-right">
+      <button class="btn" id="notesBtn" type="button" title="What each rule tests, and how many exceptions it raises"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 7.2v3.6M8 5.2v.1"/></svg><span>Notes &amp; rule summary</span></button>
+      <button class="btn" id="dlAllBtn" type="button" title="Download every project and every exception to Excel"><svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg><span>Download all projects</span></button>
+      <button class="btn" id="reloadBtn" type="button" title="Get the latest figures"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 8.2a5.4 5.4 0 1 1-1.7-4.1"/><path d="M13.6 2.4v3.2h-3.2"/></svg><span>Refresh now</span></button>
+    </div>
+  </div>
+  <div class="wrap tabsrow" id="tabsrow" hidden>
+    <nav class="tabs" role="tablist" aria-label="Dashboard views">
+      <button class="tab on" id="tab_check" role="tab" aria-selected="true">Scorecard</button>
+      <button class="tab" id="tab_track" role="tab" aria-selected="false">Daily tracking<span class="tabcount" id="tabTrackN">0</span></button>
+    </nav>
+  </div>
+</header>
+
+<div class="layout">
+<div class="rail" id="rail">
+  <div class="wrap" id="railInner">
+    <div class="railhead"><span>Filters</span></div>
+    <div class="fld" id="fld_q"><label for="fQ">Project search</label><input id="fQ" type="search" placeholder="Name, owner, PM, brand" autocomplete="off"></div>
+    <div class="fld" id="fld_scope"><label for="fScope">Show</label><select id="fScope"><option value="all">All projects</option><option value="flagged">Flagged only</option></select></div>
+    <div id="filterFields" style="display:contents"></div>
+    <div class="fld" id="fld_ns"><label for="fNs">Net sales &gt; ($)</label><input id="fNs" type="number" min="0" step="1000" value="0"></div>
+    <button class="btn sm" id="resetBtn" type="button" title="Back to the default view"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.6h6.4a3.4 3.4 0 0 1 0 6.8H6"/><path d="M5.6 3 3 5.6l2.6 2.6"/></svg><span>Reset</span></button>
+    <div class="inview"><b id="inviewN">&#x2014;</b><span>projects in view</span></div>
+  </div>
+</div>
+
+<main class="wrap" id="main" tabindex="-1">
+  <div class="warnbar" id="warnbar" hidden></div>
+  <div id="emptyState" class="empty" style="margin-top:30px">
+    <b id="emptyTitle">Loading the latest project data&#x2026;</b>
+    <span id="emptyMsg">This takes a second or two.</span>
+  </div>
+
+  <section id="viewCheck" class="dqview" hidden>
+    <div class="dqcard kbar" id="kpis"></div>
+    <div class="shead dqhead"><h2>Project data quality check</h2><span class="sub">click a cell to filter &middot; click Issues for the full text</span>
+      <span class="act"><button class="btn sm" id="hlBtn" type="button" aria-pressed="true">Highlight errors</button><button class="expbtn" id="xlGridBtn" type="button" title="Download the projects in view to Excel" aria-label="Download the projects in view to Excel"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg>Excel</button></span></div>
+    <div class="dqcard">
+      <div class="gridwrap" id="gridwrap">
+        <table class="st" id="st"><thead><tr id="headRow"></tr></thead><tbody id="gridBody"></tbody></table>
+        <div class="norows" id="noRows" hidden>No projects match the current filters.</div>
+      </div>
+      <div class="gfoot">
+        <span>Rows <b id="rowCount">0</b></span><span>Flagged <b id="flagCount">0</b></span><span>Exceptions in view <b id="exCount">0</b></span>
+        <button class="btn sm" id="finBtn" type="button" aria-pressed="true">Financials on</button>
+      </div>
+      <div class="gfoot hlkey" id="hlKey"></div>
+    </div>
+    <p class="dqfoot" id="checkFoot"></p>
+  </section>
+
+  <section id="viewTrack" class="dqview" hidden>
+    <div class="shead dqhead"><h2>Daily data quality tracking</h2><span class="sub" id="trackScope">one row per nightly snapshot, plus Now</span>
+      <span class="act"><button class="expbtn" id="xlLogBtn" type="button" title="Download the daily tracking to Excel" aria-label="Download the daily tracking to Excel"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg>Excel</button></span></div>
+    <div class="dqcard trackcard">
+      <div class="snapbar">
+        <label for="seriesSel">Series</label>
+        <select id="seriesSel">
+          <option value="exceptions">All exceptions</option><option value="flagged">Projects needing review</option>
+          <option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+        </select>
+        <span class="msg" id="snapMsg"></span>
+      </div>
+      <div class="trendgrid2">
+        <div>
+          <svg class="chart" id="trendChart" viewBox="0 0 560 220" role="img" aria-label="Daily exception trend"></svg>
+          <div class="emptychart" id="emptyChart" hidden>The trend line starts after the first daily snapshot.</div>
+          <div class="legend"><span><i class="lg-bar"></i><span id="lgBarTxt">All exceptions</span></span><span class="muted">the hollow point is Now (the latest data)</span></div>
+        </div>
+        <div class="logscroll"><table class="log" id="logTable"></table></div>
+      </div>
+    </div>
+    <div class="shead dqhead"><h2>Changes since the last snapshot</h2><span class="sub" id="cmpSub"></span>
+      <span class="act"><button class="expbtn" id="xlCmpBtn" type="button" hidden title="Download the changes since the last snapshot to Excel" aria-label="Download the changes since the last snapshot to Excel"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg>Excel</button></span></div>
+    <div class="dqcard trackcard">
+      <div class="cmpsum" id="cmpSum"></div>
+      <div class="logscroll cmpscroll"><table class="log cmp" id="cmpTable"></table></div>
+    </div>
+    <p class="dqfoot" id="trackFoot"></p>
+  </section>
+</main>
+
+</div>
+<footer class="wrap" id="foot" hidden></footer>
+
+<dialog id="issDlg" aria-labelledby="issTitle"><div class="dlg pop" id="issBody"></div></dialog>
+<dialog id="notesDlg" aria-labelledby="notesTitle"><div class="dlg pop notes" id="notesBody"></div></dialog>
+
+<!-- @include partials/drawer.html -->
+<!-- @include partials/ask.html -->
+
+<!-- @config -->
+<!-- @js shared/loading.js -->
+<!-- @js shared/readbook.js -->
+<!-- @js pages/dq/dq.js -->
+<!-- @js shared/nav.js -->
+<!-- @js shared/tables.js -->
+<!-- @js shared/responsive.js -->
+<!-- @js shared/explore.js -->
+<!-- @js shared/ask.js -->
+</body>
+</html>

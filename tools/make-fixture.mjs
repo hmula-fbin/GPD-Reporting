@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Writes tests/fixtures/pipeline-fixture.xlsx: a SYNTHETIC workbook with the same layout as the
+  Writes tests/fixtures/pipeline-fixture.csv: a SYNTHETIC data file (CSV, like the real one) with the same layout as the
   real pipeline extract (header row a few rows down, same column names) but invented projects.
   Real company data never goes into git. Deterministic: same seed -> same file -> stable tests.
 
@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import XLSX from "./lib/sheetjs.mjs";
+import { toCsv } from "./lib/csv.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -24,7 +24,8 @@ const HEADER = ["Index", "Include", "Comments/ Followup", "Project Name", "SG Pr
   "Primary Mktg Product Mgr", "Project Status", "Sponsor Organization", "Brand", "Distribution Channel", "BU", "Business", "Market", "Phase",
   "Stage", "Start", "Finish", "Finish Year", "Target Execution Time (Months)", "Forecasted Execution Time (Months)", "Product Life",
   "Total NS (Life)", "Total NS (Annualized)", "Total CM (Life)", "Total CM (Annualized)", "Incremental NS (Life)", "Incremental NS (Annualized)",
-  "Incremental CM (Life)", "Incremental CM  (Annualized)", "New CM%", "% Incremental NS", "Total Investment (OPEX+CAPEX)"];
+  "Incremental CM (Life)", "Incremental CM  (Annualized)", "New CM%", "% Incremental NS", "Total Investment (OPEX+CAPEX)",
+  "Capital Investment", "Product Development Investment"];
 
 const TYPES = [ // SG Project Type, bucket, platform, target months  (mirrors config/bucket-reference.json)
   ["Developer Custom Request.Off Platform", "Grow the Core", "Off", 12], ["Product Expansion/Refresh.Off Platform", "Grow the Core", "Off", 20],
@@ -45,6 +46,7 @@ const aoa = [
   [null, null, null, "INCLUDE"], ["Synthetic test data - not real projects."], [], [null, null, null, "Legend:", "Missing in Master / lookup gap"],
   HEADER,
 ];
+let inv;
 for (let i = 1; i <= N; i++) {
   const t = pick(TYPES), bu = pick(BUS), st = pick(STAGES), ci = t[1] === "CI" || t[1] === "CRQ";
   const start = new Date(2025, Math.floor(rnd() * 20), 1 + Math.floor(rnd() * 27));
@@ -55,11 +57,9 @@ for (let i = 1; i <= N; i++) {
   aoa.push([i, rnd() < 0.9 ? "INCLUDE" : "EXCLUDE", null, (6000 + i) + " " + pick(WORDS) + " " + pick(THINGS), t[0], t[1], t[2], pick(OWNERS),
     ci ? null : pick(OWNERS), pick(STATUS), "Sponsor." + bu[0].slice(3), pick(BRANDS), null, bu[0], rnd() < 0.15 ? null : pick(bu[1]), pick(MARKETS),
     st[0], st[1], start, finish, finish.getFullYear(), tgt, fc, life, ns === null ? null : ns * life, ns, cm * life, cm, ns ? ns * life : 0, ns ? Math.round(ns * 0.8) : 0,
-    cm * life, Math.round(cm * 0.8), ns ? cm / ns : null, ns ? 0.8 : null, money(1e4, 2.5e6)]);
+    cm * life, Math.round(cm * 0.8), ns ? cm / ns : null, ns ? 0.8 : null, (inv = money(1e4, 2.5e6)), Math.round(inv * 0.35), Math.round(inv * 0.5)]);
 }
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa, { cellDates: true }), "PIPELINE");
-const out = path.join(ROOT, "tests/fixtures/pipeline-fixture.xlsx");
+const out = path.join(ROOT, "tests/fixtures/pipeline-fixture.csv");
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, XLSX.write(wb, { type: "buffer", bookType: "xlsx", cellDates: true }));
+fs.writeFileSync(out, toCsv(aoa));
 console.log("wrote " + path.relative(ROOT, out) + " (" + N + " synthetic projects)");

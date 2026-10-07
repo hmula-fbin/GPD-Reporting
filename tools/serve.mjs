@@ -4,10 +4,12 @@
   SharePoint REST calls the pages make, so you can develop without deploying.
 
     node tools/serve.mjs --env dev                     -> http://localhost:5173/  (opens Home)
-    node tools/serve.mjs --env dev --data data/Pipeline.xlsx --port 5180
+    node tools/serve.mjs --env dev --data "data/Pipeline Data.csv" --port 5180
 
-  --data  workbook to serve as the data file (default: tests/fixtures/pipeline-fixture.xlsx).
+  --data  file to serve as the data file (default: tests/fixtures/pipeline-fixture.csv).
           Put real extracts in data/ - that folder is git-ignored.
+  --project / --resource  the two Data Quality files (default: tests/fixtures/dq-*-fixture.csv).
+  --snapshot  served as the project file's nightly copies for the last two days (default: tests/fixtures/dq-project-prev-fixture.csv).
   --user  display name returned by /_api/web/currentuser (default "Preview, Alex").
 */
 import http from "node:http";
@@ -20,8 +22,20 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const env = opt("env", "dev");
 const port = Number(opt("port", process.env.PORT || 5173));
-const dataFile = path.resolve(ROOT, opt("data", "tests/fixtures/pipeline-fixture.xlsx"));
+const dataFile = path.resolve(ROOT, opt("data", "tests/fixtures/pipeline-fixture.csv"));
 const user = opt("user", "Preview, Alex");
+// Data Quality page: its two files (synthetic by default; real extracts go in data/)
+const projectFile = path.resolve(ROOT, opt("project", "tests/fixtures/dq-project-fixture.csv"));
+const resourceFile = path.resolve(ROOT, opt("resource", "tests/fixtures/dq-resource-fixture.csv"));
+// the daily dated copies, named like the real ones ("Project Data 10-07-2026.csv"): yesterday and the day before.
+// The project file's copies come from this file; the other files' copies are the files themselves.
+const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-prev-fixture.csv"));
+const easternDate = (daysAgo) => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
+  .formatToParts(new Date(Date.now() - daysAgo * 864e5)).map((x) => [x.type, x.value])); return p.month + "-" + p.day + "-" + p.year; };
+const snapshotNames = (name) => { const dot = name.lastIndexOf("."); return [2, 1].map((d) => name.slice(0, dot) + " " + easternDate(d) + name.slice(dot)); };
+// ...plus an old .xlsx of each next to the .csv, as the real library still has (the Copilot must skip both kinds)
+const copiesOf = (files) => [[files.project, prevFile], [files.pipeline, dataFile], [files.resource, resourceFile]]
+  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]).concat(/\.csv$/i.test(name) ? [[name.replace(/\.csv$/i, ".xlsx"), f]] : []) : []);
 const dist = path.join(ROOT, "dist", env);
 
 if (!fs.existsSync(path.join(dist, "manifest.json"))) { console.error("Run the build first: node build/build.mjs --env " + env); process.exit(1); }
@@ -37,12 +51,27 @@ http.createServer((req, res) => {
 
   // SharePoint REST fakes
   if (url.includes("/_api/web/currentuser")) return json(res, { Title: user });
+  // the data library's file list (the Copilot reads every spreadsheet in it)
+  if (url.includes("/_api/web/GetFolderByServerRelativePath") && url.includes("/Files")) {
+    const folder = (/decodedurl='([^']*)'/.exec(url) || [])[1] || "";
+    const files = manifest.dataFiles || {};
+    const snaps = copiesOf(files);
+    const list = [[files.pipeline, dataFile], [files.project, projectFile], [files.resource, resourceFile], ...snaps]
+      .filter(([name, f]) => name && fs.existsSync(f))
+      .map(([name, f]) => ({ Name: name, ServerRelativeUrl: folder + "/" + name, TimeLastModified: fs.statSync(f).mtime.toISOString() }));
+    return json(res, { value: list });
+  }
   if (url.includes("/_api/web/GetFileByServerRelativePath")) {
+    const files = manifest.dataFiles || {};
+    const snap = copiesOf(files).find(([n]) => url.includes("/" + n + "'"));
+    const file = snap ? snap[1] : files.project && url.includes("/" + files.project + "'") ? projectFile
+               : files.resource && url.includes("/" + files.resource + "'") ? resourceFile : dataFile;
+    if (!fs.existsSync(file)) return json(res, { error: "no fixture " + path.relative(ROOT, file) + " - run: npm run fixture" }, 404);
     if (url.includes("/$value")) {
       res.writeHead(200, { "Content-Type": "application/octet-stream", "Cache-Control": "no-store" });
-      return fs.createReadStream(dataFile).pipe(res);
+      return fs.createReadStream(file).pipe(res);
     }
-    return json(res, { TimeLastModified: fs.statSync(dataFile).mtime.toISOString() });
+    return json(res, { TimeLastModified: fs.statSync(file).mtime.toISOString() });
   }
   if (url.includes("/_api/")) return json(res, {});
 
@@ -58,5 +87,6 @@ http.createServer((req, res) => {
   console.log("GPD Portfolio Hub preview (" + env + ", build " + manifest.version + ")");
   console.log("  Home       http://localhost:" + port + pagesUrl + "Home.aspx");
   console.log("  Scorecard  http://localhost:" + port + pagesUrl + "Portfolio_Scorecard.aspx");
+  console.log("  Quality    http://localhost:" + port + pagesUrl + "Data_Quality.aspx");
   console.log("  Data       " + path.relative(ROOT, dataFile) + "   (Ctrl+C to stop)");
 });

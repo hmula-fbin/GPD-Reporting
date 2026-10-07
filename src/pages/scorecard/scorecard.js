@@ -21,7 +21,8 @@ const FIELD_MAP = {
   "target execution time (months)":"tgt","forecasted execution time (months)":"fc",
   "total ns (annualized)":"ns","total cm (annualized)":"cm",
   "incremental ns (annualized)":"ins","incremental cm (annualized)":"icm",
-  "total investment (opex+capex)":"inv","project status":"status","owner":"owner","sg project type":"ptype","platform":"platform"
+  "total investment (opex+capex)":"inv","project status":"status","owner":"owner","sg project type":"ptype","platform":"platform",
+  "capital investment":"capex","product development investment":"pdinv"
 };
 /* Columns Summary 1 tracks \u2014 used by the data integrity check. */
 const TRACKED = [
@@ -81,7 +82,7 @@ function pickSheet(wb){
   return null;
 }
 function parseWorkbook(buf, fileName){
-  const wb = XLSX.read(buf,{type:"array",cellDates:true});
+  const wb = gpdReadBook(buf);
   const sheetName = pickSheet(wb);
   if (!sheetName) throw new Error("No PIPELINE tab found in this workbook. Check the file and try again.");
   const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,blankrows:false,defval:null});
@@ -110,7 +111,7 @@ function parseWorkbook(buf, fileName){
       stage: nk(get("stage")), fy: nk(get("fy")).replace(/\.0$/,""),
       finish: fin instanceof Date ? (function(x){ x=new Date(x.getTime()+30000); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); })(fin) : (nk(fin)||null),
       tgt:num(get("tgt")), fc:num(get("fc")), ns:num(get("ns")), cm:num(get("cm")),
-      ins:num(get("ins")), icm:num(get("icm")), inv:num(get("inv")),
+      ins:num(get("ins")), icm:num(get("icm")), inv:num(get("inv")), capex:num(get("capex")), pdinv:num(get("pdinv")),
       status:nk(get("status")), owner:nk(get("owner")), ptype:nk(get("ptype")), platform:nk(get("platform"))
     });
   }
@@ -139,7 +140,7 @@ function inView(rows, f, skipKey){
 function agg(set){
   return { n:set.length, fc:mean(set,r=>r.fc), tgt:mean(set,r=>r.tgt),
            ns:sum(set,r=>r.ns), ins:sum(set,r=>r.ins), cm:sum(set,r=>r.cm), icm:sum(set,r=>r.icm),
-           inv:sum(set,r=>r.inv) };
+           inv:sum(set,r=>r.inv), capex:sum(set,r=>r.capex), pdinv:sum(set,r=>r.pdinv) };
 }
 function compute(rows, f, threshold){
   const view = inView(rows,f);
@@ -251,6 +252,10 @@ function deltaHTML(cur,prev,fmt){
   const sign = d>0?"+":"";
   return '<div class="delta '+cls+'">'+sign+fmt(d)+(p!==null?" ("+sign+(p*100).toFixed(1)+"%)":"")+" vs last month</div>";
 }
+/* Capital Investment and Product Development Investment (shown as "PD Investment"), straight from the data file. */
+function invCells(x){
+  return '<td title="'+moneyFull(x.capex)+'">'+money(x.capex)+'</td><td title="'+moneyFull(x.pdinv)+'">'+money(x.pdinv)+'</td>';
+}
 function bucketRow(b,denom,alt){
   const share = denom? b.n/denom : 0;
   return '<tr class="'+(alt?"alt":"")+'"><td><span class="chip" data-bucket="'+esc(b.label)+'"><i class="dot" style="background:'+(BCOLOR[b.label]||"var(--ink-3)")+'"></i>'+esc(b.label)+'</span></td>'
@@ -258,18 +263,18 @@ function bucketRow(b,denom,alt){
     +'<td><div class="pctcell"><span>'+pct(share,1)+'</span><span class="bar"><i style="width:'+(share*100).toFixed(1)+'%;background:'+(BCOLOR[b.label]||"var(--ink-3)")+'"></i></span></div></td>'
     +'<td>'+mo(b.fc)+'</td><td title="'+moneyFull(b.ns)+'">'+money(b.ns)+'</td><td title="'+moneyFull(b.ins)+'">'+money(b.ins)+'</td>'
     +'<td title="'+moneyFull(b.cm)+'">'+money(b.cm)+'</td><td title="'+moneyFull(b.icm)+'">'+money(b.icm)+'</td>'
-    +'<td>'+(b.ns?pct(b.cm/b.ns,1):"\u2014")+'</td></tr>';
+    +'<td>'+(b.ns?pct(b.cm/b.ns,1):"\u2014")+'</td>'+invCells(b)+'</tr>';
 }
 function totalRow(b,denom,label){
   const share = denom? b.n/denom : 0;
   return '<tr class="sub"><td><span data-bucket="'+esc(b.label)+'">'+esc(label||b.label)+'</span></td><td>'+b.n+'</td><td>'+pct(share,1)+'</td><td>'+mo(b.fc)+'</td>'
     +'<td title="'+moneyFull(b.ns)+'">'+money(b.ns)+'</td><td title="'+moneyFull(b.ins)+'">'+money(b.ins)+'</td>'
     +'<td title="'+moneyFull(b.cm)+'">'+money(b.cm)+'</td><td title="'+moneyFull(b.icm)+'">'+money(b.icm)+'</td>'
-    +'<td>'+(b.ns?pct(b.cm/b.ns,1):"\u2014")+'</td></tr>';
+    +'<td>'+(b.ns?pct(b.cm/b.ns,1):"\u2014")+'</td>'+invCells(b)+'</tr>';
 }
 const TBL_HEAD = '<thead><tr><th>Bucket</th><th># Projects</th><th>% of pipeline</th><th>Execution time (mo)</th>'
-  +'<th>Annualized NS</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th></tr></thead>';
-const FUNNEL_HEAD = '<thead><tr><th>Stage</th><th># Projects</th><th>% of track</th><th>Exec (mo)</th><th>Annualized NS</th><th>Annualized CM</th><th>CM %</th></tr></thead>';
+  +'<th>Annualized NS</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>';
+const FUNNEL_HEAD = '<thead><tr><th>Stage</th><th># Projects</th><th>% of track</th><th>Exec (mo)</th><th>Annualized NS</th><th>Annualized CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>';
 
 function funnelTable(f,color,caption){
   const tot=f.total.n||1;
@@ -279,11 +284,11 @@ function funnelTable(f,color,caption){
     body+='<tr class="'+(i%2?"alt":"")+'"><td><span class="chip"><i class="dot" style="background:'+color+';opacity:'+(0.35+0.16*i).toFixed(2)+'"></i>'+esc(s.label)+'</span></td>'
       +'<td>'+s.n+'</td><td><div class="pctcell"><span>'+pct(share,0)+'</span><span class="bar"><i style="width:'+(share*100).toFixed(1)+'%;background:'+color+';opacity:'+(0.35+0.16*i).toFixed(2)+'"></i></span></div></td>'
       +'<td>'+mo(s.fc)+'</td><td title="'+moneyFull(s.ns)+'">'+money(s.ns)+'</td><td title="'+moneyFull(s.cm)+'">'+money(s.cm)+'</td>'
-      +'<td>'+(s.ns?pct(s.cm/s.ns,1):"\u2014")+'</td></tr>';
+      +'<td>'+(s.ns?pct(s.cm/s.ns,1):"\u2014")+'</td>'+invCells(s)+'</tr>';
   });
   body+='<tr class="sub"><td>Subtotal</td><td>'+f.total.n+'</td><td>100.0%</td><td>'+mo(f.total.fc)+'</td>'
     +'<td title="'+moneyFull(f.total.ns)+'">'+money(f.total.ns)+'</td><td title="'+moneyFull(f.total.cm)+'">'+money(f.total.cm)+'</td>'
-    +'<td>'+(f.total.ns?pct(f.total.cm/f.total.ns,1):"\u2014")+'</td></tr>';
+    +'<td>'+(f.total.ns?pct(f.total.cm/f.total.ns,1):"\u2014")+'</td>'+invCells(f.total)+'</tr>';
   const e=f.rows[0].n+f.rows[1].n, l=f.rows[3].n+f.rows[4].n, t=f.total.n||1;
   const note='<div class="fnote">'+Math.round(e/t*100)+'% early (Ideate + Converge) \u00b7 '+Math.round(l/t*100)+'% late (Validate + Launch)'
     +(f.outside? ' \u00b7 '+f.outside+' project'+(f.outside>1?"s":"")+' in Discovery, outside the funnel':'')+'</div>';
@@ -305,11 +310,11 @@ function projectTable(list,valueLabel,id){
       +'<td class="'+slipClass(r)+'" title="'+(r.tgt!==null?"target "+mo(r.tgt)+" mo":"")+'">'+mo(r.fc)+'</td>'
       +'<td title="'+moneyFull(r.ns)+'">'+money(r.ns)+'</td><td title="'+moneyFull(r.ins)+'">'+money(r.ins)+'</td>'
       +'<td title="'+moneyFull(r.cm)+'">'+money(r.cm)+'</td><td title="'+moneyFull(r.icm)+'">'+money(r.icm)+'</td>'
-      +'<td>'+(r.ns?pct(r.cm/r.ns,1):"\u2014")+'</td></tr>';
+      +'<td>'+(r.ns?pct(r.cm/r.ns,1):"\u2014")+'</td>'+invCells(r)+'</tr>';
   });
-  if(!list.length) body='<tr><td colspan="9" class="muted">No projects match the current filters.</td></tr>';
+  if(!list.length) body='<tr><td colspan="11" class="muted">No projects match the current filters.</td></tr>';
   return expTable(id, '<table><thead><tr><th>Project</th><th>Bucket</th><th>End date</th><th>Exec (mo)</th>'
-    +'<th>'+esc(valueLabel)+'</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th></tr></thead>'
+    +'<th>'+esc(valueLabel)+'</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>');
 }
 function reviewTable(list,threshold,id){
@@ -320,12 +325,12 @@ function reviewTable(list,threshold,id){
       +'<td><span class="chip" style="justify-content:flex-end" data-bucket="'+esc(r.bucket||"")+'" data-proj="'+esc(r.name)+'"><i class="dot" style="background:'+(BCOLOR[r.bucket]||"var(--ink-3)")+'"></i>'+esc(r.bucket||"\u2014")+'</span></td>'
       +'<td>'+esc(r.stage||"\u2014")+'</td><td class="over">'+mo(r.fc)+'</td><td>'+mo(r.tgt)+'</td>'
       +'<td class="over">'+(over===null?"\u2014":"+"+over.toFixed(1))+'</td>'
-      +'<td title="'+moneyFull(r.ns)+'">'+money(r.ns)+'</td><td>'+dstr(r.finish)+'</td></tr>';
+      +'<td title="'+moneyFull(r.ns)+'">'+money(r.ns)+'</td>'+invCells(r)+'<td>'+dstr(r.finish)+'</td></tr>';
   });
-  if(!list.length) body='<tr><td colspan="8" class="muted">Nothing over '+threshold+' months. </td></tr>';
+  if(!list.length) body='<tr><td colspan="10" class="muted">Nothing over '+threshold+' months. </td></tr>';
   const more = list.length>25 ? '<div class="fnote">Showing the 25 longest of '+list.length+' projects over the threshold.</div>' : "";
   return expTable(id, '<table><thead><tr><th>Project (longest first)</th><th>Bucket</th><th>Stage</th>'
-    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>End date</th></tr></thead>'
+    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>Capital Investment</th><th>PD Investment</th><th>End date</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>'+more);
 }
 
@@ -447,7 +452,8 @@ function exportView(){
 const PROJECT_COLS = [["Project","name"],["Status","status"],["Bucket","bucket"],["Stage","stage"],["Owner","owner"],
   ["Business unit","bu"],["Business","biz"],["Brand","brand"],["Market","mkt"],["Finish","finish"],["Finish year","fy"],
   ["Target execution (months)","tgt"],["Forecast execution (months)","fc"],["Annualized net sales","ns"],["Annualized CM","cm"],
-  ["Annualized incremental NS","ins"],["Annualized incremental CM","icm"],["Total investment (OPEX+CAPEX)","inv"]];
+  ["Annualized incremental NS","ins"],["Annualized incremental CM","icm"],["Total investment (OPEX+CAPEX)","inv"],
+  ["Capital Investment","capex"],["PD Investment","pdinv"]];
 function projectRows(list){
   return [PROJECT_COLS.map(c=>c[0])].concat(list.map(r => PROJECT_COLS.map(c => {
     const v = r[c[1]]; return v === null || v === undefined ? "" : v; })));

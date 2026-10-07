@@ -7,6 +7,7 @@ export default defineConfig({
   testMatch: /.*\.spec\.mjs/,
   timeout: 60_000,
   fullyParallel: true,
+  workers: 4, // more than this overloads a laptop and slow pages time out
   reporter: [["list"], ["html", { open: "never", outputFolder: "test-results/report" }]],
   outputDir: "test-results/artifacts",
   use: {

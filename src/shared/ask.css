@@ -75,6 +75,7 @@ body.ask-chat .askchat{opacity:1;transform:none;pointer-events:auto;visibility:v
 .acnote{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--ink-3)}
 .acnote button{margin-left:auto;display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--steel);font:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:0}
 .acnote button .i{width:12px;height:12px}
+.acnote button[hidden]{display:none}
 .asktoast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);z-index:990;background:var(--ink);color:var(--panel);font-size:12.5px;font-weight:500;
   padding:10px 16px;border-radius:10px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;max-width:90vw}
 .asktoast.on{opacity:1;transform:translate(-50%,0)}
@@ -85,3 +86,7 @@ body.ask-chat .askchat{opacity:1;transform:none;pointer-events:auto;visibility:v
 }
 @media print{.askfab,.askpop,.askchat,.asktoast{display:none!important}}
 @media (prefers-reduced-motion:reduce){.askpop,.askchat,.askfab{transition:none}.amsg.typing i{animation:none}}
+
+/* Excel download under an answer table */
+.askchat .amsg .askxl{border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:6px;padding:1px 8px;font:inherit;font-size:11px;cursor:pointer;margin-left:4px}
+.askchat .amsg .askxl:hover{border-color:var(--steel);color:var(--steel)}

@@ -48,12 +48,12 @@ const steps = [
   "1. Make sure custom scripts are ON for this site today (SharePoint switches it off every 24 hours).",
   "   Ask your SharePoint admin, or check: if step 3 is refused or the page downloads instead of opening, it is off.",
   "2. Open the library:  " + libUrl,
-  "3. Drag these two files from this folder into the library. Choose REPLACE when asked:",
-  "     Home.aspx",
-  "     Portfolio_Scorecard.aspx",
-  "4. Open " + libUrl + "/Home.aspx and " + libUrl + "/Portfolio_Scorecard.aspx and check they load.",
+  "3. Drag these " + manifest.files.length + " files from this folder into the library. Choose REPLACE when asked:",
+  ...manifest.files.map((f) => "     " + f.name),
+  "4. Open each page and check it loads:",
+  ...manifest.files.map((f) => "     " + libUrl + "/" + f.name),
   env === "prod" ? "5. Smoke test: press Refresh now on the Scorecard and ask one question. Then tell the team." :
-                   "5. Send the two links to the requester to test.",
+                   "5. Send the links to the requester to test.",
   "",
   "To undo: in the library, click ... next to a file > Version history > Restore the previous version.",
 ];
