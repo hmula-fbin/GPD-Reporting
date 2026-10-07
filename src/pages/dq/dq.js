@@ -204,7 +204,8 @@ const when = d => new Date(d).toLocaleString("en-US", {month:"short", day:"numer
 const todayKey = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function lsGet(k){ try{ const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-const isActive = v => v === true || /^(true|yes|y|1|active)$/i.test(nk(v));
+/* the extract stores yes as -1 (and no as 0); TRUE, Yes, 1 and Active also count */
+const isActive = v => v === true || /^(true|yes|y|-?1|active)$/i.test(nk(v));
 const dimVal = (p, k) => p[k] || NOT_SET;
 
 /* ---------- reading the files ---------- */
@@ -254,8 +255,9 @@ function parseRoster(buf){
   for (let r = t.hdr + 1; r < t.grid.length; r++){
     const g = t.grid[r] || [], nm = nk(g[cn]); if (!nm) continue;
     const a = isActive(g[ca]); people++; if (a) active++;
-    if (cu > -1 && nk(g[cu])) byUid.set(lk(g[cu]), a);
-    const key = nameKey(nm); byName.set(key, byName.get(key) || a);   /* a name on several records counts as active if any is */
+    /* a person on several records (same ID or same name) counts as active if any of them is */
+    if (cu > -1 && nk(g[cu])) byUid.set(lk(g[cu]), byUid.get(lk(g[cu])) || a);
+    const key = nameKey(nm); byName.set(key, byName.get(key) || a);
   }
   return {byUid, byName, people, active};
 }

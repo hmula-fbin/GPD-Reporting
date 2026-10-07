@@ -28,6 +28,7 @@ const RESOURCE_HEADER = ["ResourceUID", "ResourceName", "ResourceEmailAddress", 
 const PEOPLE = [
   ["R-001", "Rivera, Ana", true], ["R-002", "Okafor, Ben", true], ["R-003", "Lindqvist; Chen", true], ["R-004", "Dara Moreau", true],
   ["R-005", "Tanaka, Eli", true], ["R-006", "Novak, Fay", false], ["R-007", "Brennan, Gus", false], ["R-008", "Haddad, Hana", true],
+  ["R-001", "Rivera, Ana - Inactive", false],   /* an old record for an active person: she still counts as active */
 ];
 
 /* Which rules each named test project must raise - exactly these, no more. */
@@ -130,7 +131,7 @@ addProject("DQ Retired project", "incr", {}, true, prevRows);
 
 const people = [RESOURCE_HEADER].concat(PEOPLE.map((p) => {
   const r = new Array(RESOURCE_HEADER.length).fill(null);
-  r[0] = p[0]; r[1] = p[1]; r[4] = p[2]; r[5] = false; r[6] = 1;
+  r[0] = p[0]; r[1] = p[1]; r[4] = p[2] ? -1 : 0; r[5] = 0; r[6] = 1;   /* yes/no as -1 / 0, as in the real extract */
   return r;
 }));
 

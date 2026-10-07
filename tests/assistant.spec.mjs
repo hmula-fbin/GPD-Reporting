@@ -64,7 +64,7 @@ test("Copilot answers from the people list", async ({ page }) => {
   await open(page, HOME);
   const a = await ask(page, "How many people are active?");
   expect(a.ds).toBe("Resource");
-  expect(a.val).toBe(PEOPLE.filter((r) => r.ResourceIsActive === true).length);
+  expect(a.val).toBe(PEOPLE.filter((r) => r.ResourceIsActive === -1).length);   // -1 means active in the extract
 });
 
 test("Copilot totals any column by any column, and the answer downloads to Excel", async ({ page }) => {

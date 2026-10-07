@@ -101,6 +101,10 @@
         if (vals.size <= 2000){ var key = String(v).toLowerCase(); if (!vals.has(key)) vals.set(key, v); } });
       var tot = nN + nT + nD + nB;
       c.type = !tot ? "text" : nB / tot > 0.8 ? "bool" : nD / tot > 0.8 ? "date" : nN / tot > 0.8 ? "num" : "text";
+      /* a column of only -1 and 0 is yes/no stored the Access way (-1 = yes), e.g. ResourceIsActive */
+      if (c.type === "num" && vals.has("-1") && Array.from(vals.keys()).every(function(k){ return k === "-1" || k === "0"; })){
+        c.type = "bool"; rows.forEach(function(row){ var v = row[ci]; if (v !== null && v !== undefined && v !== "") row[ci] = String(v) === "-1"; });
+      }
       if (c.type === "num") rows.forEach(function(row){ if (typeof row[ci] !== "number") row[ci] = num(row[ci]); });
       c.money = c.type === "num" && /sales|cost|saving|margin|cm\b|cm\$|dollar|invest|capital|expense|\bns\b|revenue|npv|income|spend|\boi\b|price|\$/i.test(c.name) && !/percent|pct|%|count|units|score|years|life|hours|months/i.test(c.name);
       c.values = c.type === "text" && vals.size <= 2000 ? vals : null;
