@@ -139,6 +139,9 @@ test("daily tracking: one row per nightly snapshot plus Now, and the latest data
   await page.waitForFunction(() => window.gpdDQSnapsReady === true, null, { timeout: 15_000 });
   const d = await page.evaluate(() => window.gpdDQ());
   expect(d.snaps.length).toBe(2);
+  /* copies are named MM-DD-YYYY ("Project Data 10-07-2026.csv"); the comparison uses the latest-dated one */
+  expect(d.snaps[0].date < d.snaps[1].date).toBe(true);
+  expect(d.cmp.date).toBe(d.snaps[1].date);
   expect(d.snaps.every((s) => !s.pending && !s.err)).toBe(true);
   const has = (change, name, code = "") => d.cmp.rows.some((r) => r.change === change && r.name.endsWith(name) && r.code === code);
   expect(has("New exception", "DQ U5 Negative margin", "U5")).toBe(true);

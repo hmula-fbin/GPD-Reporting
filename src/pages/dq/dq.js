@@ -560,19 +560,19 @@ function openNotes(){
 ["issDlg", "notesDlg"].forEach(id => $(id).addEventListener("click", e => { if (e.target === $(id)) $(id).close(); }));
 
 /* ---------- daily tracking ---------- */
-/* Every night at 11 PM Eastern a scheduled flow saves a dated copy of the project file next to it,
-   "<project file name> YYYY-MM-DD.xlsx" (docs/DAILY-SNAPSHOT.md). Daily tracking is built from those copies:
-   one row per snapshot plus "Now" from the live file, and a project-by-project comparison of the live
-   file with the previous day's snapshot. A snapshot never changes, so its totals are cached in this browser.
+/* Every night a scheduled flow saves a dated copy of the project file next to it,
+   "<project file name> MM-DD-YYYY.csv" (YYYY-MM-DD also works; docs/DAILY-SNAPSHOT.md). Daily tracking is built
+   from those copies: one row per snapshot plus "Now" from the live file, and a project-by-project comparison
+   of the live file with the latest-dated copy. A snapshot never changes, so its totals are cached in this browser.
    Tracking always measures the default view (In Progress, Active Phase) so days compare like for like. */
 const LS_SNAPCACHE = "fbin_dq_snapcache_v1", SNAP_DAYS = 60, SNAP_FETCH_MAX = 8;
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const SNAP_RE = (() => {
   const n = decodeURIComponent(GPD_CONFIG.projectFile.split("/").pop()), dot = n.lastIndexOf(".");
-  return new RegExp("^" + reEsc(dot > 0 ? n.slice(0, dot) : n) + " (\\d{4}-\\d{2}-\\d{2})" + reEsc(dot > 0 ? n.slice(dot) : "") + "$", "i");
+  return new RegExp("^" + reEsc(dot > 0 ? n.slice(0, dot) : n) + " (\\d{2}-\\d{2}-\\d{4}|\\d{4}-\\d{2}-\\d{2})" + reEsc(dot > 0 ? n.slice(dot) : "") + "$", "i");
 })();
-/* snapshots are named by the Eastern date, so "today" here is the Eastern date too */
-const easternToday = () => new Intl.DateTimeFormat("en-CA", {timeZone:"America/New_York", year:"numeric", month:"2-digit", day:"2-digit"}).format(new Date());
+/* the date in a copy's name, as YYYY-MM-DD so dates sort */
+const isoDate = s => /^\d{2}-\d{2}-\d{4}$/.test(s) ? s.slice(6) + "-" + s.slice(0, 2) + "-" + s.slice(3, 5) : s;
 const dayLabel = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {weekday:"short", day:"numeric", month:"short"});
 const inScope = (p, d) => (!d.status.length || d.status.indexOf(p.status) > -1) && (!d.phase.length || d.phase.indexOf(p.phase) > -1);
 
@@ -593,7 +593,7 @@ async function listSnapshots(){
   const r = await fetch(GPD_CONFIG.sitePath + "/_api/web/GetFolderByServerRelativePath(decodedurl='" + spPath(GPD_CONFIG.dataFolder) + "')/Files?$select=Name,ServerRelativeUrl,TimeLastModified",
     {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}});
   if (!r.ok) throw new Error("list " + r.status);
-  return ((await r.json()).value || []).map(f => { const m = SNAP_RE.exec(f.Name); return m ? {date:m[1], url:f.ServerRelativeUrl, modified:f.TimeLastModified || ""} : null; })
+  return ((await r.json()).value || []).map(f => { const m = SNAP_RE.exec(f.Name); return m ? {date:isoDate(m[1]), url:f.ServerRelativeUrl, modified:f.TimeLastModified || ""} : null; })
     .filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1).slice(-SNAP_DAYS);
 }
 async function readSnapshot(s){
@@ -618,7 +618,7 @@ function compare(prevP, nowP){
   const n = c => rows.filter(r => r.change === c).length;
   return {rows, added:n("Project added"), removed:n("Project removed"), newEx:n("New exception"), fixed:n("Fixed")};
 }
-/* Reads the snapshot list, the previous day's snapshot in full (for the comparison) and the totals of
+/* Reads the snapshot list, the latest-dated snapshot in full (for the comparison) and the totals of
    up to SNAP_FETCH_MAX other snapshots not cached yet. Re-renders as each one lands. */
 let snapRun = 0;
 async function loadSnapshots(){
@@ -628,13 +628,13 @@ async function loadSnapshots(){
   try{ list = await listSnapshots(); }catch(e){ console.error(e); S.snapState = "error"; renderTrackIfOpen(); return; }
   if (run !== snapRun) return;
   S.snaps = list.map(s => { const t = cache[ck(s)]; if (t) keep[ck(s)] = t; return t ? Object.assign({}, t, {date:s.date}) : {date:s.date, pending:true}; });
-  const prev = list.filter(s => s.date < easternToday()).pop() || null;
+  const prev = list[list.length - 1] || null;               /* the latest-dated copy */
   S.cmp = prev ? {date:prev.date, pending:true} : null;
   S.snapState = "ready"; renderTrackIfOpen();
   const todo = (prev ? [prev] : []).concat(list.filter(s => s !== prev && !cache[ck(s)]).reverse().slice(0, SNAP_FETCH_MAX));
   for (const s of todo){
     try{
-      /* the previous day's snapshot is kept in memory, so the hourly refresh doesn't download it again */
+      /* the latest snapshot is kept in memory, so the hourly refresh doesn't download it again */
       const P = S.prevMemo && S.prevMemo.k === ck(s) ? S.prevMemo.P : await readSnapshot(s);
       if (run !== snapRun) return;
       if (s === prev) S.prevMemo = {k:ck(s), P};
@@ -657,8 +657,8 @@ function snapMsg(){
   const pend = S.snaps.filter(r => r.pending).length;
   return S.snapState === "loading" ? "Reading the daily snapshots…"
     : S.snapState === "error" ? "The daily snapshots couldn’t be read just now. Try Refresh in a minute."
-    : !S.snaps.length ? "No daily snapshots yet. One is saved every night at 11 PM Eastern."
-    : S.snaps.length + " daily snapshot" + (S.snaps.length === 1 ? "" : "s") + ", saved every night at 11 PM Eastern" + (pend ? " · reading " + pend + "…" : "");
+    : !S.snaps.length ? "No daily snapshots yet. One is saved every day."
+    : S.snaps.length + " daily snapshot" + (S.snaps.length === 1 ? "" : "s") + ", one saved every day" + (pend ? " · reading " + pend + "…" : "");
 }
 function renderTrack(){
   const key = $("seriesSel").value, svg = $("trendChart");
@@ -693,7 +693,7 @@ function renderTrack(){
 function renderCompare(){
   const c = S.cmp, sub = $("cmpSub"), sum = $("cmpSum"), tb = $("cmpTable");
   $("xlCmpBtn").hidden = !(c && c.rows);
-  if (!c){ sub.textContent = "no earlier snapshot yet"; sum.innerHTML = '<span class="muted">The comparison starts once there is a snapshot from an earlier day.</span>'; tb.innerHTML = ""; return; }
+  if (!c){ sub.textContent = "no snapshot yet"; sum.innerHTML = '<span class="muted">The comparison starts once the first daily snapshot is saved.</span>'; tb.innerHTML = ""; return; }
   sub.textContent = "latest data vs the " + dayLabel(c.date) + " snapshot · " + trackScope();
   if (c.pending){ sum.innerHTML = '<span class="muted">Reading the ' + esc(dayLabel(c.date)) + ' snapshot…</span>'; tb.innerHTML = ""; return; }
   if (c.err){ sum.innerHTML = '<span class="muted">That snapshot couldn’t be read just now.</span>'; tb.innerHTML = ""; return; }
@@ -748,7 +748,7 @@ function exportLog(){
   const H = S.snaps.filter(r => !r.pending && !r.err).concat([trackNow()]);
   H.forEach((r, i) => { const prev = H[i - 1];
     rows.push([r.date, r.projects, r.flagged, r.exceptions, prev ? r.exceptions - prev.exceptions : "", r.critical, r.high, r.medium, r.low]); });
-  saveXlsx("Data_Quality_Daily_Tracking_" + todayKey() + ".xlsx", [{name:"Daily tracking", rows}, {name:"About", rows:[["Tracking scope", trackScope()], ["Snapshots", "saved every night at 11 PM Eastern; Now = the latest data"], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
+  saveXlsx("Data_Quality_Daily_Tracking_" + todayKey() + ".xlsx", [{name:"Daily tracking", rows}, {name:"About", rows:[["Tracking scope", trackScope()], ["Snapshots", "one saved every day; Now = the latest data"], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
 }
 function exportCompare(){
   const c = S.cmp; if (!c || !c.rows) return;
@@ -826,8 +826,8 @@ function renderFoot(){
     + (ro ? " and the resource roster (" + fmtN(ro.people) + " people, " + fmtN(ro.active) + " active)" : "")
     + ", scored against the " + RULES.length + " rules of rule set v2.1. Which rules apply to a project depends on its Strategic Bucket (Improve, CRQ, Incremental, Innovation).";
   $("trackScope").textContent = "one row per nightly snapshot, plus Now · " + trackScope();
-  $("trackFoot").textContent = "A snapshot of the project data is saved automatically every night at 11 PM Eastern; each row here is one of those snapshots, and Now is the latest data. "
-    + "The comparison above shows, project by project, what changed between the previous day’s snapshot and the latest data. "
+  $("trackFoot").textContent = "A snapshot of the project data is saved automatically every day; each row here is one of those snapshots, and Now is the latest data. "
+    + "The comparison above shows, project by project, what changed between the latest daily snapshot and the latest data. "
     + "Tracking is fixed to the dashboard’s default scope (" + trackScope() + ") so the series stays comparable — changing the filters on the Scorecard tab does not change what is logged. "
     + "At this extract that scope holds " + fmtN(t.projects) + " projects, " + fmtN(t.flagged) + " of them flagged, carrying " + fmtN(t.exceptions) + " exceptions. "
     + "Projects added or removed include those that moved into or out of this scope (a change of status or phase).";

@@ -5,14 +5,14 @@ The Data Quality Dashboard's **Daily tracking** tab is built from dated copies o
 ```
 Report Files/
   Project Data.csv               <- the live file (refreshed every day at 5 PM Eastern)
-  Project Data 2026-10-06.csv    <- tonight's snapshot
-  Project Data 2026-10-05.csv    <- last night's snapshot
+  Project Data 10-07-2026.csv    <- today's snapshot
+  Project Data 10-06-2026.csv    <- yesterday's snapshot
   ...
 ```
 
-The page finds the copies by their names (`<project file name> YYYY-MM-DD.csv`), so new copies are picked up automatically.
+The page finds the copies by their names (`<project file name> MM-DD-YYYY.csv`, for example `Project Data 10-07-2026.csv`; YYYY-MM-DD also works), so new copies are picked up automatically.
 - **Tracking:** one row per snapshot, plus a **Now** row from the live file.
-- **Changes since the previous day:** compares the live file with the latest snapshot from an earlier day, project by project. It lists new exceptions, fixed exceptions, and projects added or removed.
+- **Changes since the last snapshot:** compares the live file with the latest-dated copy, project by project. It lists new exceptions, fixed exceptions, and projects added or removed.
 - **Copilot:** ignores the copies, so it doesn't count projects once per day.
 
 The page can't make the copies itself, because it only runs while someone has it open. That's why a flow does it.
@@ -38,13 +38,13 @@ Do this for the Dev site (`/sites/GPDReportingsbx`) first, then for Prod (`/site
    - **Folder Path:** `/Report Files`
    - **File Name:** switch to the expression editor (fx) and paste:
      ```
-     concat('Project Data ', formatDateTime(convertFromUtc(utcNow(), 'Eastern Standard Time'), 'yyyy-MM-dd'), '.csv')
+     concat('Project Data ', formatDateTime(convertFromUtc(utcNow(), 'Eastern Standard Time'), 'MM-dd-yyyy'), '.csv')
      ```
    - **File Content:** pick **File Content** from step 3.
    - In the action's **Settings**, set **Allow chunking** on, because the file can be several MB.
 5. **Save**, then **Test**, **Manually**, **Run flow**. This is the test run.
    - Check that **Project Data <today's date>.csv** appears in Report Files.
-   - Open the Data Quality Dashboard and go to **Daily tracking**. Today's snapshot appears as a row. From tomorrow, "Changes since the previous day" fills in.
+   - Open the Data Quality Dashboard and go to **Daily tracking**. Today's snapshot appears as a row. "Changes since the last snapshot" compares the live file with it.
 
 A test run made during the day overwrites nothing. The 11 PM run creates the same name again and replaces it with the evening copy. If Create file complains that the file exists, open the action's **Settings** and turn **Allow overwrite** on, or add a **Delete file** step for the same path before it.
 

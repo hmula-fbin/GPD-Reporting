@@ -27,11 +27,14 @@ const user = opt("user", "Preview, Alex");
 // Data Quality page: its two files (synthetic by default; real extracts go in data/)
 const projectFile = path.resolve(ROOT, opt("project", "tests/fixtures/dq-project-fixture.csv"));
 const resourceFile = path.resolve(ROOT, opt("resource", "tests/fixtures/dq-resource-fixture.csv"));
-// the nightly snapshots of the project file: yesterday and the day before (Eastern dates), both from this file
+// the daily dated copies, named like the real ones ("Project Data 10-07-2026.csv"): yesterday and the day before.
+// The project file's copies come from this file; the other files' copies are the files themselves.
 const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-prev-fixture.csv"));
-const easternDate = (daysAgo) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
-  .format(new Date(Date.now() - daysAgo * 864e5));
-const snapshotNames = (project) => { const dot = project.lastIndexOf("."); return [2, 1].map((d) => project.slice(0, dot) + " " + easternDate(d) + project.slice(dot)); };
+const easternDate = (daysAgo) => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
+  .formatToParts(new Date(Date.now() - daysAgo * 864e5)).map((x) => [x.type, x.value])); return p.month + "-" + p.day + "-" + p.year; };
+const snapshotNames = (name) => { const dot = name.lastIndexOf("."); return [2, 1].map((d) => name.slice(0, dot) + " " + easternDate(d) + name.slice(dot)); };
+const copiesOf = (files) => [[files.project, prevFile], [files.pipeline, dataFile], [files.resource, resourceFile]]
+  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]) : []);
 const dist = path.join(ROOT, "dist", env);
 
 if (!fs.existsSync(path.join(dist, "manifest.json"))) { console.error("Run the build first: node build/build.mjs --env " + env); process.exit(1); }
@@ -51,7 +54,7 @@ http.createServer((req, res) => {
   if (url.includes("/_api/web/GetFolderByServerRelativePath") && url.includes("/Files")) {
     const folder = (/decodedurl='([^']*)'/.exec(url) || [])[1] || "";
     const files = manifest.dataFiles || {};
-    const snaps = files.project ? snapshotNames(files.project).map((n) => [n, prevFile]) : [];
+    const snaps = copiesOf(files);
     const list = [[files.pipeline, dataFile], [files.project, projectFile], [files.resource, resourceFile], ...snaps]
       .filter(([name, f]) => name && fs.existsSync(f))
       .map(([name, f]) => ({ Name: name, ServerRelativeUrl: folder + "/" + name, TimeLastModified: fs.statSync(f).mtime.toISOString() }));
@@ -59,8 +62,8 @@ http.createServer((req, res) => {
   }
   if (url.includes("/_api/web/GetFileByServerRelativePath")) {
     const files = manifest.dataFiles || {};
-    const snap = files.project && snapshotNames(files.project).some((n) => url.includes("/" + n + "'"));
-    const file = snap ? prevFile : files.project && url.includes("/" + files.project + "'") ? projectFile
+    const snap = copiesOf(files).find(([n]) => url.includes("/" + n + "'"));
+    const file = snap ? snap[1] : files.project && url.includes("/" + files.project + "'") ? projectFile
                : files.resource && url.includes("/" + files.resource + "'") ? resourceFile : dataFile;
     if (!fs.existsSync(file)) return json(res, { error: "no fixture " + path.relative(ROOT, file) + " - run: npm run fixture" }, 404);
     if (url.includes("/$value")) {

@@ -44,13 +44,13 @@
   /* ---------- reading the files ---------- */
   function api(path){ return CFG.sitePath + "/_api/web/" + path; }
   function rel(p){ return encodeURIComponent(String(p).replace(/'/g, "''")); }
-  /* The nightly dated copies of a data file ("<name> YYYY-MM-DD.xlsx", see docs/DAILY-SNAPSHOT.md) are history,
+  /* The nightly dated copies of a data file ("<name> MM-DD-YYYY.csv", see docs/DAILY-SNAPSHOT.md) are history,
      not data to answer from: reading them would count every project once per day. */
   function isSnapshot(name){
     return [CFG.dataFile, CFG.projectFile, CFG.resourceFile].some(function(p){
       if (!p) return false;
       var n = decodeURIComponent(String(p).split("/").pop()), dot = n.lastIndexOf("."), base = dot > 0 ? n.slice(0, dot) : n;
-      return name.toLowerCase().indexOf(base.toLowerCase() + " ") === 0 && /^ \d{4}-\d{2}-\d{2}\.[a-z]+$/i.test(name.slice(base.length));
+      return name.toLowerCase().indexOf(base.toLowerCase() + " ") === 0 && /^ (\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})\.[a-z]+$/i.test(name.slice(base.length));
     });
   }
   function listFiles(){
