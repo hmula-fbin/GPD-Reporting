@@ -1,6 +1,6 @@
 // Data Quality page: the 21 rules fire exactly where they should, plus the house rules every page follows.
 import { test, expect } from "@playwright/test";
-import { HOME, DQ, open } from "./helpers.mjs";
+import { HOME, DQ, FORBIDDEN, open } from "./helpers.mjs";
 import { EXPECT } from "../tools/make-dq-fixture.mjs";
 
 /* Tick (or untick) one value in a multi-select filter, then close the list. */
@@ -120,17 +120,40 @@ test("Excel downloads: the grid, Download all projects, and the daily tracking",
   expect(dl.suggestedFilename()).toMatch(/.xlsx$/);
 });
 
-test("today is logged automatically, one row per day, for the default view", async ({ page }) => {
+test("Project type comes from the Stage Gate Project Type column", async ({ page }) => {
   await open(page, DQ);
-  let d = await page.evaluate(() => window.gpdDQ());
-  expect(d.snaps.length).toBe(1);
-  expect(d.snaps[0].exceptions).toBe(d.track.exceptions);
-  await page.click("#snapTopBtn");
-  await expect(page.locator("#viewTrack")).toBeVisible();
-  d = await page.evaluate(() => window.gpdDQ());
-  expect(d.snaps.length).toBe(1);
-  await expect(page.locator("#logTable tbody tr")).toHaveCount(1);
-  await expect(page.locator("#trendChart circle")).toHaveCount(1);
+  const d = await page.evaluate(() => window.gpdDQ());
+  expect(d.projects.every((p) => p.ptype)).toBe(true);
+  expect(d.projects.find((p) => p.name.endsWith("DQ U8 skip Improvement type")).ptype).toBe("Improvement.On Platform");
+});
+
+test("there is no Record now button: tracking comes from the nightly snapshots", async ({ page }) => {
+  await open(page, DQ);
+  await expect(page.getByText("Record now")).toHaveCount(0);
+  await page.click("#tab_track");
+  await expect(page.getByText("Record now")).toHaveCount(0);
+});
+
+test("daily tracking: one row per nightly snapshot plus Now, and the latest data compared with the previous day's snapshot", async ({ page }) => {
+  await open(page, DQ);
+  await page.waitForFunction(() => window.gpdDQSnapsReady === true, null, { timeout: 15_000 });
+  const d = await page.evaluate(() => window.gpdDQ());
+  expect(d.snaps.length).toBe(2);
+  expect(d.snaps.every((s) => !s.pending && !s.err)).toBe(true);
+  const has = (change, name, code = "") => d.cmp.rows.some((r) => r.change === change && r.name.endsWith(name) && r.code === code);
+  expect(has("New exception", "DQ U5 Negative margin", "U5")).toBe(true);
+  expect(has("Fixed", "DQ Clean name formats", "BR")).toBe(true);
+  expect(has("Project removed", "DQ Retired project")).toBe(true);
+  expect(d.cmp.added).toBeGreaterThanOrEqual(1);
+  await page.click("#tab_track");
+  await expect(page.locator("#logTable tbody tr")).toHaveCount(3);
+  await expect(page.locator("#logTable tbody tr").first()).toContainText("Now");
+  await expect(page.locator("#trendChart circle")).toHaveCount(3);
+  await expect(page.locator("#cmpTable tbody tr")).toHaveCount(d.cmp.rows.length);
+  await expect(page.locator("#cmpSum")).toContainText("new exception");
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#xlCmpBtn")]);
+  expect(dl.suggestedFilename()).toMatch(/.xlsx$/);
+  expect(await page.locator("body").innerText()).not.toMatch(FORBIDDEN);
 });
 
 test("notes explain every rule", async ({ page }) => {

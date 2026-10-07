@@ -22,7 +22,6 @@
       <button class="btn" id="notesBtn" type="button" title="What each rule tests, and how many exceptions it raises"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 7.2v3.6M8 5.2v.1"/></svg><span>Notes &amp; rule summary</span></button>
       <button class="btn" id="dlAllBtn" type="button" title="Download every project and every exception to Excel"><svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg><span>Download all projects</span></button>
       <button class="btn" id="reloadBtn" type="button" title="Get the latest figures"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 8.2a5.4 5.4 0 1 1-1.7-4.1"/><path d="M13.6 2.4v3.2h-3.2"/></svg><span>Refresh now</span></button>
-      <button class="btn refresh" id="snapTopBtn" type="button" title="Log today's totals in the daily tracking"><span>Record now</span></button>
     </div>
   </div>
   <div class="wrap tabsrow" id="tabsrow" hidden>
@@ -72,7 +71,7 @@
   </section>
 
   <section id="viewTrack" class="dqview" hidden>
-    <div class="shead dqhead"><h2>Daily data quality tracking</h2><span class="sub" id="trackScope">logged automatically &middot; one row per calendar date</span>
+    <div class="shead dqhead"><h2>Daily data quality tracking</h2><span class="sub" id="trackScope">one row per nightly snapshot, plus Now</span>
       <span class="act"><button class="expbtn" id="xlLogBtn" type="button" title="Download the daily tracking to Excel" aria-label="Download the daily tracking to Excel"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg>Excel</button></span></div>
     <div class="dqcard trackcard">
       <div class="snapbar">
@@ -81,17 +80,22 @@
           <option value="exceptions">All exceptions</option><option value="flagged">Projects needing review</option>
           <option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
         </select>
-        <button class="btn refresh sm" id="snapBtn" type="button">Record now</button>
         <span class="msg" id="snapMsg"></span>
       </div>
       <div class="trendgrid2">
         <div>
           <svg class="chart" id="trendChart" viewBox="0 0 560 220" role="img" aria-label="Daily exception trend"></svg>
-          <div class="emptychart" id="emptyChart" hidden>No snapshots logged yet. Record today&#39;s snapshot to start the history.</div>
-          <div class="legend"><span><i class="lg-bar"></i><span id="lgBarTxt">All exceptions</span></span><span class="muted">a hollow point means the same data as the day before</span></div>
+          <div class="emptychart" id="emptyChart" hidden>The trend line starts after the first nightly snapshot (11 PM Eastern).</div>
+          <div class="legend"><span><i class="lg-bar"></i><span id="lgBarTxt">All exceptions</span></span><span class="muted">the hollow point is Now (the latest data)</span></div>
         </div>
         <div class="logscroll"><table class="log" id="logTable"></table></div>
       </div>
+    </div>
+    <div class="shead dqhead"><h2>Changes since the previous day</h2><span class="sub" id="cmpSub"></span>
+      <span class="act"><button class="expbtn" id="xlCmpBtn" type="button" hidden title="Download the changes since the previous day to Excel" aria-label="Download the changes since the previous day to Excel"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/><path d="M4 5.2h8M4 8h8M4 10.8h8M7.2 3.6v8.8" stroke="#fff" stroke-width="1.15" stroke-linecap="round" fill="none"/></svg>Excel</button></span></div>
+    <div class="dqcard trackcard">
+      <div class="cmpsum" id="cmpSum"></div>
+      <div class="logscroll cmpscroll"><table class="log cmp" id="cmpTable"></table></div>
     </div>
     <p class="dqfoot" id="trackFoot"></p>
   </section>

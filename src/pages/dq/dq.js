@@ -11,7 +11,7 @@
    A list means "the first of these that exists". */
 const PROJECT_COLS = {
   id: "ProjectID", name: "ProjectName", status: "Project Status", phase: "PhaseName", stage: ["CurrentStage", "StageName"],
-  sponsor: "Sponsor Organization", ptype: "ProjectType", bucket: "Strategic Bucket", brand: "Brand",
+  sponsor: "Sponsor Organization", ptype: ["Stage Gate Project Type", "ProjectType"], bucket: "Strategic Bucket", brand: "Brand",
   owner: "ProjectOwnerName", ownerUid: "ProjectOwnerResourceUID", pm: "Primary Mktg Product Mgr",
   ns: "Total Net Sales", nsInc: "Incremental Net Sales", cs: "Total Cost Savings",
   cmNew: "Contribution Margin Dollars_New", cmInc: "Incremental Contribution Margin Dollars",
@@ -185,9 +185,9 @@ const DIMS = [
   {key:"sponsor", label:"Sponsor organization"}
 ];
 const NOT_SET = "(not set)";
-const LS_SNAP = "fbin_dq_snaps_v1", SNAP_DAYS = 400, ROWH = 30;
-const S = { P:[], roster:null, off:{}, missing:[], loadedAt:null, fp:"", tab:"check",
-  f:null, q:"", scope:"all", ns:0, hl:true, fin:true, sort:"n", dir:-1, rows:[], snaps:[], series:"exceptions" };
+const ROWH = 30;
+const S = { P:[], roster:null, off:{}, missing:[], loadedAt:null, tab:"check",
+  f:null, q:"", scope:"all", ns:0, hl:true, fin:true, sort:"n", dir:-1, rows:[], snaps:[], snapState:"", cmp:null, series:"exceptions" };
 const $ = id => document.getElementById(id);
 
 /* ---------- helpers ---------- */
@@ -560,59 +560,148 @@ function openNotes(){
 ["issDlg", "notesDlg"].forEach(id => $(id).addEventListener("click", e => { if (e.target === $(id)) $(id).close(); }));
 
 /* ---------- daily tracking ---------- */
-/* Tracking always measures the default view (In Progress, Active Phase) so days compare like for like.
-   Rows are kept in this browser. The first view of a day logs it; a newer extract replaces it. */
-function trackNow(){
-  const d = defaults(), t = {date:todayKey(), projects:0, flagged:0, exceptions:0, critical:0, high:0, medium:0, low:0, rules:{}, fp:S.fp};
+/* Every night at 11 PM Eastern a scheduled flow saves a dated copy of the project file next to it,
+   "<project file name> YYYY-MM-DD.xlsx" (docs/DAILY-SNAPSHOT.md). Daily tracking is built from those copies:
+   one row per snapshot plus "Now" from the live file, and a project-by-project comparison of the live
+   file with the previous day's snapshot. A snapshot never changes, so its totals are cached in this browser.
+   Tracking always measures the default view (In Progress, Active Phase) so days compare like for like. */
+const LS_SNAPCACHE = "fbin_dq_snapcache_v1", SNAP_DAYS = 60, SNAP_FETCH_MAX = 8;
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const SNAP_RE = (() => {
+  const n = decodeURIComponent(GPD_CONFIG.projectFile.split("/").pop()), dot = n.lastIndexOf(".");
+  return new RegExp("^" + reEsc(dot > 0 ? n.slice(0, dot) : n) + " (\\d{4}-\\d{2}-\\d{2})" + reEsc(dot > 0 ? n.slice(dot) : "") + "$", "i");
+})();
+/* snapshots are named by the Eastern date, so "today" here is the Eastern date too */
+const easternToday = () => new Intl.DateTimeFormat("en-CA", {timeZone:"America/New_York", year:"numeric", month:"2-digit", day:"2-digit"}).format(new Date());
+const dayLabel = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {weekday:"short", day:"numeric", month:"short"});
+const inScope = (p, d) => (!d.status.length || d.status.indexOf(p.status) > -1) && (!d.phase.length || d.phase.indexOf(p.phase) > -1);
+
+function trackOf(P, date){
+  const d = defaults(), t = {date, projects:0, flagged:0, exceptions:0, critical:0, high:0, medium:0, low:0, rules:{}};
   const keys = ["critical", "high", "medium", "low"];
-  S.P.forEach(p => {
-    if (d.status.length && d.status.indexOf(p.status) < 0) return;
-    if (d.phase.length && d.phase.indexOf(p.phase) < 0) return;
+  P.forEach(p => {
+    if (!inScope(p, d)) return;
     t.projects++; if (p.n) t.flagged++; t.exceptions += p.n;
     p.ex.forEach(e => { t[keys[e.sev]]++; t.rules[e.code] = (t.rules[e.code] || 0) + 1; });
   });
   return t;
 }
+const trackNow = () => trackOf(S.P, "Now");
 function trackScope(){ const d = defaults(); return "Project status = " + (d.status.join(" + ") || "All") + ", Phase = " + (d.phase.join(" + ") || "All"); }
-const todayRow = () => S.snaps.find(r => r.date === todayKey()) || null;
-function record(){
-  if (!S.P.length) return;
-  const t = trackNow();
-  S.snaps = S.snaps.filter(s => s.date !== t.date).concat([t]).sort((a, b) => a.date < b.date ? -1 : 1).slice(-SNAP_DAYS);
-  lsSet(LS_SNAP, S.snaps);
+
+async function listSnapshots(){
+  const r = await fetch(GPD_CONFIG.sitePath + "/_api/web/GetFolderByServerRelativePath(decodedurl='" + spPath(GPD_CONFIG.dataFolder) + "')/Files?$select=Name,ServerRelativeUrl,TimeLastModified",
+    {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}});
+  if (!r.ok) throw new Error("list " + r.status);
+  return ((await r.json()).value || []).map(f => { const m = SNAP_RE.exec(f.Name); return m ? {date:m[1], url:f.ServerRelativeUrl, modified:f.TimeLastModified || ""} : null; })
+    .filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1).slice(-SNAP_DAYS);
 }
-function autoRecord(){ const r = todayRow(); if (!r || r.fp !== S.fp) record(); }
+async function readSnapshot(s){
+  const t = parseProjects((await fetchFile(s.url)).buf);
+  runRules(t.P, S.roster, t.missing);
+  return t.P;
+}
+/* Projects match on Project ID (the name when there is none); exceptions on project + rule. */
+function compare(prevP, nowP){
+  const d = defaults(), key = p => p.id || p.name, rows = [];
+  const was = new Map(prevP.filter(p => inScope(p, d)).map(p => [key(p), p])), is = new Map(nowP.filter(p => inScope(p, d)).map(p => [key(p), p]));
+  is.forEach((p, k) => {
+    const q = was.get(k);
+    if (!q){ rows.push({name:p.name, change:"Project added", code:"", sev:9, text:p.n + " exception" + (p.n === 1 ? "" : "s") + " now"}); return; }
+    const before = new Set(q.ex.map(e => e.code)), after = new Set(p.ex.map(e => e.code));
+    p.ex.forEach(e => { if (!before.has(e.code)) rows.push({name:p.name, change:"New exception", code:e.code, sev:e.sev, text:e.text}); });
+    q.ex.forEach(e => { if (!after.has(e.code)) rows.push({name:p.name, change:"Fixed", code:e.code, sev:e.sev, text:RULE[e.code].name}); });
+  });
+  was.forEach((q, k) => { if (!is.has(k)) rows.push({name:q.name, change:"Project removed", code:"", sev:9, text:q.n + " exception" + (q.n === 1 ? "" : "s") + " before"}); });
+  const order = {"New exception":0, "Fixed":1, "Project added":2, "Project removed":3};
+  rows.sort((a, b) => order[a.change] - order[b.change] || a.sev - b.sev || a.name.localeCompare(b.name));
+  const n = c => rows.filter(r => r.change === c).length;
+  return {rows, added:n("Project added"), removed:n("Project removed"), newEx:n("New exception"), fixed:n("Fixed")};
+}
+/* Reads the snapshot list, the previous day's snapshot in full (for the comparison) and the totals of
+   up to SNAP_FETCH_MAX other snapshots not cached yet. Re-renders as each one lands. */
+let snapRun = 0;
+async function loadSnapshots(){
+  const run = ++snapRun, cache = lsGet(LS_SNAPCACHE) || {}, ck = s => s.date + "|" + s.modified, keep = {};
+  S.snapState = "loading"; renderTrackIfOpen();
+  let list;
+  try{ list = await listSnapshots(); }catch(e){ console.error(e); S.snapState = "error"; renderTrackIfOpen(); return; }
+  if (run !== snapRun) return;
+  S.snaps = list.map(s => { const t = cache[ck(s)]; if (t) keep[ck(s)] = t; return t ? Object.assign({}, t, {date:s.date}) : {date:s.date, pending:true}; });
+  const prev = list.filter(s => s.date < easternToday()).pop() || null;
+  S.cmp = prev ? {date:prev.date, pending:true} : null;
+  S.snapState = "ready"; renderTrackIfOpen();
+  const todo = (prev ? [prev] : []).concat(list.filter(s => s !== prev && !cache[ck(s)]).reverse().slice(0, SNAP_FETCH_MAX));
+  for (const s of todo){
+    try{
+      /* the previous day's snapshot is kept in memory, so the hourly refresh doesn't download it again */
+      const P = S.prevMemo && S.prevMemo.k === ck(s) ? S.prevMemo.P : await readSnapshot(s);
+      if (run !== snapRun) return;
+      if (s === prev) S.prevMemo = {k:ck(s), P};
+      keep[ck(s)] = trackOf(P, s.date);
+      S.snaps = S.snaps.map(r => r.date === s.date ? keep[ck(s)] : r);
+      if (s === prev) S.cmp = Object.assign({date:prev.date}, compare(P, S.P));
+    }catch(e){
+      console.error(e);
+      if (s === prev) S.cmp = {date:prev.date, err:true};
+      S.snaps = S.snaps.map(r => r.date === s.date ? {date:s.date, err:true} : r);
+    }
+    lsSet(LS_SNAPCACHE, keep);
+    renderTrackIfOpen();
+  }
+  lsSet(LS_SNAPCACHE, keep);
+  window.gpdDQSnapsReady = true;
+}
+function renderTrackIfOpen(){ if (!S.P.length) return; $("tabTrackN").textContent = S.snaps.length; if (S.tab === "track") renderTrack(); }
 function snapMsg(){
-  const r = todayRow();
-  return r && r.fp === S.fp ? "Logged automatically for " + r.date + ". Recording again just refreshes that row."
-    : r ? "Today’s row holds an earlier extract — it will be replaced automatically." : "Today has not been logged yet.";
+  const pend = S.snaps.filter(r => r.pending).length;
+  return S.snapState === "loading" ? "Reading the daily snapshots…"
+    : S.snapState === "error" ? "The daily snapshots couldn’t be read just now. Try Refresh in a minute."
+    : !S.snaps.length ? "No daily snapshots yet. One is saved every night at 11 PM Eastern."
+    : S.snaps.length + " daily snapshot" + (S.snaps.length === 1 ? "" : "s") + ", saved every night at 11 PM Eastern" + (pend ? " · reading " + pend + "…" : "");
 }
 function renderTrack(){
-  const key = $("seriesSel").value, svg = $("trendChart"), H = S.snaps;
-  $("tabTrackN").textContent = H.length;
+  const key = $("seriesSel").value, svg = $("trendChart");
+  const all = S.snaps.concat(S.P.length ? [trackNow()] : []), H = all.filter(r => !r.pending && !r.err);
+  $("tabTrackN").textContent = S.snaps.length;
   $("snapMsg").textContent = snapMsg();
-  $("emptyChart").hidden = H.length > 0;
+  $("emptyChart").hidden = H.length > 1;
   $("lgBarTxt").textContent = $("seriesSel").selectedOptions[0].textContent;
+  renderCompare();
   if (!H.length){ svg.innerHTML = ""; $("logTable").innerHTML = ""; return; }
-  const W = 560, Ht = 220, L = 50, R = 14, Tp = 18, B = 36, data = H.slice(-60), vals = data.map(r => r[key] || 0);
+  const W = 560, Ht = 220, L = 50, R = 14, Tp = 18, B = 36, data = H.slice(-SNAP_DAYS - 1), vals = data.map(r => r[key] || 0);
   const step = Math.max(1, Math.ceil(Math.max(1, ...vals) / 4)), top = step * 4, pw = W - L - R, ph = Ht - Tp - B, n = data.length;
   const cx = i => n === 1 ? L + pw / 2 : L + i * pw / (n - 1), cy = v => Tp + ph - v / top * ph;
   let g = "";
   for (let i = 0; i <= 4; i++){ const y = Tp + ph - i / 4 * ph;
     g += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y + '" style="stroke:var(--rule-2)"/><text x="' + (L - 8) + '" y="' + (y + 3.8) + '" text-anchor="end">' + fmtN(step * i) + '</text>'; }
   const every = Math.max(1, Math.ceil(n / 8));
-  data.forEach((r, i) => { if (i % every === 0 || i === n - 1) g += '<text x="' + cx(i) + '" y="' + (Ht - B + 15) + '" text-anchor="middle">' + r.date.slice(5) + '</text>'; });
+  data.forEach((r, i) => { if (i % every === 0 || i === n - 1) g += '<text x="' + cx(i) + '" y="' + (Ht - B + 15) + '" text-anchor="middle">' + (r.date === "Now" ? "Now" : r.date.slice(5)) + '</text>'; });
   if (n > 1) g += '<polyline points="' + data.map((r, i) => cx(i) + "," + cy(vals[i])).join(" ") + '" fill="none" style="stroke:var(--kpi)" stroke-width="2.2" stroke-linejoin="round"/>';
-  data.forEach((r, i) => { const same = i > 0 && r.fp && data[i - 1].fp === r.fp;
-    g += '<circle cx="' + cx(i) + '" cy="' + cy(vals[i]) + '" r="3.4" style="' + (same ? "fill:var(--panel)" : "fill:var(--kpi)") + ';stroke:var(--kpi)" stroke-width="1.6"><title>' + r.date + ": " + fmtN(vals[i]) + (same ? " (same data as the day before)" : "") + '</title></circle>';
+  data.forEach((r, i) => { const now = r.date === "Now";
+    g += '<circle cx="' + cx(i) + '" cy="' + cy(vals[i]) + '" r="3.4" style="' + (now ? "fill:var(--panel)" : "fill:var(--kpi)") + ';stroke:var(--kpi)" stroke-width="1.6"><title>' + (now ? "Now (latest data)" : dayLabel(r.date) + " snapshot") + ": " + fmtN(vals[i]) + '</title></circle>';
     if (n <= 12) g += '<text x="' + cx(i) + '" y="' + (cy(vals[i]) - 8) + '" text-anchor="middle" style="fill:var(--kpi);font-weight:700">' + fmtN(vals[i]) + '</text>'; });
   svg.innerHTML = g;
-  const rev = H.slice().reverse();
-  $("logTable").innerHTML = '<thead><tr><th>Date</th><th>Extract</th><th>Projects</th><th>Flagged</th><th>Exceptions</th><th>Change vs previous</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>'
-    + rev.map((r, i) => { const prev = rev[i + 1], same = prev && r.fp && prev.fp === r.fp, d = prev ? r.exceptions - prev.exceptions : null;
-      return '<tr><td>' + r.date + '</td><td class="' + (same ? "flat" : "") + '" title="' + (same ? "Same project data as the previous row: re-logged, not re-measured." : "Different project data from the previous row.") + '">' + (same ? "same" : "new") + '</td>'
-        + '<td>' + fmtN(r.projects) + '</td><td>' + fmtN(r.flagged) + '</td><td>' + fmtN(r.exceptions) + '</td>'
+  const rev = all.slice().reverse(), done = rev.filter(r => !r.pending && !r.err);
+  $("logTable").innerHTML = '<thead><tr><th>Date</th><th>Projects</th><th>Flagged</th><th>Exceptions</th><th>Change vs previous</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>'
+    + rev.map(r => {
+      if (r.pending || r.err) return '<tr><td>' + esc(r.date) + '</td><td class="flat" colspan="8">' + (r.err ? "couldn’t be read" : "reading…") + '</td></tr>';
+      const prev = done[done.indexOf(r) + 1], d = prev ? r.exceptions - prev.exceptions : null;
+      return '<tr><td>' + (r.date === "Now" ? "<b>Now</b>" : esc(r.date)) + '</td><td>' + fmtN(r.projects) + '</td><td>' + fmtN(r.flagged) + '</td><td>' + fmtN(r.exceptions) + '</td>'
         + '<td class="flat">' + (d === null ? "—" : (d > 0 ? "+" : "") + fmtN(d)) + '</td><td>' + fmtN(r.critical) + '</td><td>' + fmtN(r.high) + '</td><td>' + fmtN(r.medium) + '</td><td>' + fmtN(r.low) + '</td></tr>'; }).join("") + '</tbody>';
+}
+function renderCompare(){
+  const c = S.cmp, sub = $("cmpSub"), sum = $("cmpSum"), tb = $("cmpTable");
+  $("xlCmpBtn").hidden = !(c && c.rows);
+  if (!c){ sub.textContent = "no earlier snapshot yet"; sum.innerHTML = '<span class="muted">The comparison starts once there is a snapshot from an earlier day.</span>'; tb.innerHTML = ""; return; }
+  sub.textContent = "latest data vs the " + dayLabel(c.date) + " snapshot · " + trackScope();
+  if (c.pending){ sum.innerHTML = '<span class="muted">Reading the ' + esc(dayLabel(c.date)) + ' snapshot…</span>'; tb.innerHTML = ""; return; }
+  if (c.err){ sum.innerHTML = '<span class="muted">That snapshot couldn’t be read just now.</span>'; tb.innerHTML = ""; return; }
+  const chip = (n, t) => '<span class="cmpchip"><b>' + fmtN(n) + '</b> ' + t + '</span>';
+  sum.innerHTML = chip(c.newEx, "new exception" + (c.newEx === 1 ? "" : "s")) + chip(c.fixed, "fixed") + chip(c.added, "project" + (c.added === 1 ? "" : "s") + " added") + chip(c.removed, "removed");
+  tb.innerHTML = !c.rows.length ? '<tbody><tr><td class="flat">No changes since the ' + esc(dayLabel(c.date)) + ' snapshot.</td></tr></tbody>'
+    : '<thead><tr><th>Project</th><th>Change</th><th>Rule</th><th>Severity</th><th>Detail</th></tr></thead><tbody>'
+      + c.rows.map(r => '<tr><td>' + esc(r.name) + '</td><td>' + r.change + '</td><td>' + esc(r.code) + '</td><td>' + (r.sev < 9 ? SEVS[r.sev] : "") + '</td><td class="detail">' + esc(r.text) + '</td></tr>').join("") + '</tbody>';
 }
 $("seriesSel").onchange = renderTrack;
 
@@ -655,10 +744,17 @@ function filterSheet(){
 function exportAll(){ saveXlsx("Data_Quality_All_Projects_" + todayKey() + ".xlsx", projectSheets(S.P)); }
 function exportView(){ saveXlsx("Data_Quality_Dashboard_" + todayKey() + ".xlsx", projectSheets(S.rows)); }
 function exportLog(){
-  const rows = [["Date", "Extract", "Projects", "Projects needing review", "Open exceptions", "Change vs previous", "Critical", "High", "Medium", "Low"]];
-  S.snaps.forEach((r, i) => { const prev = S.snaps[i - 1];
-    rows.push([r.date, prev && r.fp && prev.fp === r.fp ? "same" : "new", r.projects, r.flagged, r.exceptions, prev ? r.exceptions - prev.exceptions : "", r.critical, r.high, r.medium, r.low]); });
-  saveXlsx("Data_Quality_Daily_Tracking_" + todayKey() + ".xlsx", [{name:"Daily tracking", rows}, {name:"About", rows:[["Tracking scope", trackScope()], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
+  const rows = [["Date", "Projects", "Projects needing review", "Open exceptions", "Change vs previous", "Critical", "High", "Medium", "Low"]];
+  const H = S.snaps.filter(r => !r.pending && !r.err).concat([trackNow()]);
+  H.forEach((r, i) => { const prev = H[i - 1];
+    rows.push([r.date, r.projects, r.flagged, r.exceptions, prev ? r.exceptions - prev.exceptions : "", r.critical, r.high, r.medium, r.low]); });
+  saveXlsx("Data_Quality_Daily_Tracking_" + todayKey() + ".xlsx", [{name:"Daily tracking", rows}, {name:"About", rows:[["Tracking scope", trackScope()], ["Snapshots", "saved every night at 11 PM Eastern; Now = the latest data"], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
+}
+function exportCompare(){
+  const c = S.cmp; if (!c || !c.rows) return;
+  const rows = [["Project", "Change", "Rule code", "Rule", "Severity", "Detail"]].concat(c.rows.map(r => [r.name, r.change, r.code, r.code ? RULE[r.code].name : "", r.sev < 9 ? SEVS[r.sev] : "", r.text]));
+  saveXlsx("Data_Quality_Changes_Since_" + c.date + ".xlsx", [{name:"Changes", rows}, {name:"About", rows:[["Compared", "Latest data vs the " + c.date + " snapshot"], ["Scope", trackScope()],
+    ["New exceptions", c.newEx], ["Fixed", c.fixed], ["Projects added", c.added], ["Projects removed", c.removed], ["Downloaded", new Date().toLocaleString("en-US")]]}]);
 }
 function flash(btn, label){
   const was = btn.innerHTML; btn.classList.add("done"); btn.innerHTML = label;
@@ -699,11 +795,9 @@ async function reloadData(){
     let roster = null;
     if (!rs.err){ try{ roster = parseRoster(rs.buf); }catch(re){ console.error(re); } } else console.error(rs.err);
     S.P = parsed.P; S.missing = parsed.missing; S.roster = roster; S.loadedAt = new Date();
-    S.fp = [pr.modified, rs.modified || "", S.P.length].join("|");          /* identifies this extract for the tracking */
     S.off = runRules(S.P, roster, S.missing).off;
     if (!S.f) S.f = defaults();
     $("filterFields").innerHTML = "";
-    autoRecord();
     const asAt = pr.modified ? new Date(pr.modified) : S.loadedAt;
     $("subline").textContent = "Project & resource data quality checks · Data as at " + asAt.toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric"});
     $("subline").title = "Last refreshed " + when(S.loadedAt);
@@ -711,6 +805,7 @@ async function reloadData(){
     showTab();
     warn(); renderHead(); renderHlKey(); refresh();
     window.gpdDQReady = true;
+    loadSnapshots();
   }catch(err){
     console.error(err);
     const m = err && err.message ? err.message : String(err);
@@ -725,16 +820,17 @@ function renderFoot(){
   const f = $("foot"); f.hidden = false;
   f.innerHTML = '<span>Last refresh: ' + (S.loadedAt ? S.loadedAt.toLocaleString("en-US") : "—") + '</span>'
     + '<span>' + fmtN(S.P.length) + ' projects checked against ' + RULES.length + ' rules</span>'
-    + '<span>' + S.snaps.length + ' daily snapshot' + (S.snaps.length === 1 ? "" : "s") + ' stored in this browser</span>';
+    + '<span>' + S.snaps.length + ' daily snapshot' + (S.snaps.length === 1 ? "" : "s") + '</span>';
   const ro = S.roster, t = trackNow();
   $("checkFoot").textContent = "Project and exception figures are built from the project data (" + fmtN(S.P.length) + " projects)"
     + (ro ? " and the resource roster (" + fmtN(ro.people) + " people, " + fmtN(ro.active) + " active)" : "")
     + ", scored against the " + RULES.length + " rules of rule set v2.1. Which rules apply to a project depends on its Strategic Bucket (Improve, CRQ, Incremental, Innovation).";
-  $("trackScope").textContent = "logged automatically · one row per calendar date · " + trackScope();
-  $("trackFoot").textContent = "The row for each date is written automatically: the first view of the day logs it, and a view carrying newer project data replaces it. "
+  $("trackScope").textContent = "one row per nightly snapshot, plus Now · " + trackScope();
+  $("trackFoot").textContent = "A snapshot of the project data is saved automatically every night at 11 PM Eastern; each row here is one of those snapshots, and Now is the latest data. "
+    + "The comparison above shows, project by project, what changed between the previous day’s snapshot and the latest data. "
     + "Tracking is fixed to the dashboard’s default scope (" + trackScope() + ") so the series stays comparable — changing the filters on the Scorecard tab does not change what is logged. "
     + "At this extract that scope holds " + fmtN(t.projects) + " projects, " + fmtN(t.flagged) + " of them flagged, carrying " + fmtN(t.exceptions) + " exceptions. "
-    + "A day marked “same” in the log, drawn as a hollow point, re-recorded the previous day’s data rather than measuring new data. Rows are kept in this browser.";
+    + "Projects added or removed include those that moved into or out of this scope (a change of status or phase).";
 }
 
 /* Suggestions for the Copilot on this page: it answers from every data file. */
@@ -743,9 +839,9 @@ window.gpdSuggest = [{q:"How many projects where Strategic Bucket is CRQ?", icon
 
 /* For the tests: every project with the rules it breaks, and the tracking totals. */
 window.gpdDQ = () => ({
-  projects: S.P.map(p => ({name:p.name, status:p.status, phase:p.phase, codes:p.ex.map(e => e.code), texts:p.ex.map(e => e.text)})),
+  projects: S.P.map(p => ({name:p.name, status:p.status, phase:p.phase, ptype:p.ptype, codes:p.ex.map(e => e.code), texts:p.ex.map(e => e.text)})),
   rules: RULES.map(r => ({code:r.code, sev:SEVS[r.sev], off:!!S.off[r.code]})),
-  view: S.rows.length, filters: Object.assign({}, S.f), track: trackNow(), snaps: S.snaps.slice()
+  view: S.rows.length, filters: Object.assign({}, S.f), track: trackNow(), snaps: S.snaps.slice(), cmp: S.cmp
 });
 
 /* ---------- wiring ---------- */
@@ -763,9 +859,7 @@ $("notesBtn").onclick = () => { if (S.P.length) openNotes(); };
 $("dlAllBtn").onclick = () => { if (S.P.length){ exportAll(); flash($("dlAllBtn"), '<svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/></svg><span>Downloaded</span>'); } };
 $("xlGridBtn").onclick = () => { if (S.P.length){ exportView(); flash($("xlGridBtn"), DL_ICON + "Downloaded"); } };
 $("xlLogBtn").onclick = () => { exportLog(); flash($("xlLogBtn"), DL_ICON + "Downloaded"); };
-function recordNow(btn){ if (!S.P.length) return; record(); setTab("track"); renderTrack(); renderFoot(); flash(btn, "<span>Recorded</span>"); }
-$("snapTopBtn").onclick = () => recordNow($("snapTopBtn"));
-$("snapBtn").onclick = () => recordNow($("snapBtn"));
+$("xlCmpBtn").onclick = () => { exportCompare(); flash($("xlCmpBtn"), DL_ICON + "Downloaded"); };
 $("hlBtn").onclick = () => { S.hl = !S.hl; $("hlBtn").setAttribute("aria-pressed", String(S.hl)); $("hlBtn").textContent = S.hl ? "Highlight errors" : "Highlighting off"; renderHlKey(); drawRows(false); };
 $("finBtn").onclick = () => { S.fin = !S.fin; $("finBtn").setAttribute("aria-pressed", String(S.fin)); $("finBtn").textContent = S.fin ? "Financials on" : "Financials off"; renderHead(); drawRows(false); };
 let qt; $("fQ").oninput = () => { clearTimeout(qt); qt = setTimeout(() => { S.q = $("fQ").value.trim().toLowerCase(); refresh(); }, 140); };
@@ -790,7 +884,7 @@ $("resetBtn").onclick = () => {
 })();
 
 (function boot(){
-  S.snaps = lsGet(LS_SNAP) || [];
+  try{ localStorage.removeItem("fbin_dq_snaps_v1"); }catch(e){}     /* the old in-browser log; tracking now comes from the nightly snapshots */
   reloadData();
   setInterval(reloadData, Math.max(5, GPD_CONFIG.reloadMinutes) * 60000);
 })();

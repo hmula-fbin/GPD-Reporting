@@ -44,12 +44,21 @@
   /* ---------- reading the files ---------- */
   function api(path){ return CFG.sitePath + "/_api/web/" + path; }
   function rel(p){ return encodeURIComponent(String(p).replace(/'/g, "''")); }
+  /* The nightly dated copies of a data file ("<name> YYYY-MM-DD.xlsx", see docs/DAILY-SNAPSHOT.md) are history,
+     not data to answer from: reading them would count every project once per day. */
+  function isSnapshot(name){
+    return [CFG.dataFile, CFG.projectFile, CFG.resourceFile].some(function(p){
+      if (!p) return false;
+      var n = decodeURIComponent(String(p).split("/").pop()), dot = n.lastIndexOf("."), base = dot > 0 ? n.slice(0, dot) : n;
+      return name.toLowerCase().indexOf(base.toLowerCase() + " ") === 0 && /^ \d{4}-\d{2}-\d{2}\.[a-z]+$/i.test(name.slice(base.length));
+    });
+  }
   function listFiles(){
     var folder = CFG.dataFolder || (CFG.dataFile || "").replace(/\/[^\/]*$/, "");
     return fetch(api("GetFolderByServerRelativePath(decodedurl='" + rel(folder) + "')/Files?$select=Name,ServerRelativeUrl,TimeLastModified"),
         {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}})
       .then(function(r){ return r.ok ? r.json() : {value:[]}; })
-      .then(function(j){ return (j.value || []).filter(function(f){ return /\.(xlsx|xlsm|xls|csv)$/i.test(f.Name) && !/^~\$/.test(f.Name); }); })
+      .then(function(j){ return (j.value || []).filter(function(f){ return /\.(xlsx|xlsm|xls|csv)$/i.test(f.Name) && !/^~\$/.test(f.Name) && !isSnapshot(f.Name); }); })
       .catch(function(){ return []; });
   }
   /* The best table in a file: the sheet with the most data, its header being the row (in the first 30)

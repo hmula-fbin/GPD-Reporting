@@ -3,6 +3,7 @@
   Writes the SYNTHETIC files the Data Quality page reads in the preview and the tests:
     tests/fixtures/dq-project-fixture.xlsx    same columns as the real project extract, invented projects
     tests/fixtures/dq-resource-fixture.xlsx   same columns as the real resource extract, invented people
+    tests/fixtures/dq-project-prev-fixture.xlsx   the previous day's snapshot of the project file (served as the nightly copies)
   Real company data never goes into git. Deterministic: same file every run, so the tests are stable.
 
   Every "DQ <code>" project is built to break exactly the rules listed in EXPECT (tests/dq.spec.mjs
@@ -86,12 +87,12 @@ const PMS = ["Rivera, Ana", "Okafor, Ben", "Tanaka, Eli", "Haddad, Hana", "Ana R
 const rows = [PROJECT_HEADER];
 const col = (n) => { const i = PROJECT_HEADER.indexOf(n); if (i < 0) throw new Error("no column " + n); return i; };
 let id = 7000;
-function addProject(name, kind, over, live) {
+function addProject(name, kind, over, live, into = rows) {
   const b = Object.assign({}, BASE[kind], over), r = new Array(PROJECT_HEADER.length).fill(null);
   const ph = live ? PHASES[1] : pick(PHASES), owner = PEOPLE[b.owner === undefined ? Math.floor(rnd() * 5) : b.owner];
   const set = (n, v) => { r[col(n)] = v === undefined ? null : v; };
   id++;
-  set("ProjectID", id); set("ProjectName", id + " " + name); set("ProjectType", b.type); set("Strategic Bucket", b.bucket);
+  set("ProjectID", id); set("ProjectName", id + " " + name); set("Stage Gate Project Type", b.type);   /* ProjectType stays blank, as in the real extract */ set("Strategic Bucket", b.bucket);
   set("Project Status", live ? "In Progress" : pick(STATUS)); set("PhaseName", ph[0]); set("CurrentPhase", ph[0]);
   set("StageName", ph[1]); set("CurrentStage", ph[1]); set("Sponsor Organization", pick(SPONSORS));
   set("Brand", "brand" in over ? over.brand : pick(BRANDS));
@@ -104,7 +105,7 @@ function addProject(name, kind, over, live) {
   set("Total Investment", Math.round(5e4 + rnd() * 2e6)); set("ProjectUID", "P-" + id);
   set("DC First Ship 2 Date", new Date(2027, id % 12, 5)); set("DC First Ship 1 Date", new Date(2026, id % 12, 20));
   set("NPV", id * 1000); set("Project Management Flag", ["Green", "Yellow", "Red"][id % 3]);
-  rows.push(r);
+  into.push(r);
 }
 for (const [name, kind, over] of TESTS) addProject(name, kind, over, true);
 /* clean filler; Improve projects get savings-to-margin ratios close together so only the outlier stands out */
@@ -116,6 +117,16 @@ for (let i = 0; i < 70; i++) {
   if (kind === "improve") { const r = RATIOS[i % RATIOS.length], cs = 2e5 * k; over = { cs, cmNew: cs * r, cmInc: cs * r, cmAnn: cs * r / 5 }; }
   addProject(pick(["Aurora", "Basalt", "Cobalt", "Drift", "Ember", "Fjord", "Granite"]) + " " + pick(["Faucet Refresh", "Lock Platform", "Cost Down", "Valve Redesign", "Packaging Update"]), kind, over, i % 3 === 0);
 }
+
+/* The previous day's snapshot: the same projects with known differences, so the comparison has something to find.
+   Compared with it, the latest file has: U5 new on "DQ U5 Negative margin", BR fixed on "DQ Clean name formats",
+   the last filler project added, and "DQ Retired project" removed. */
+const prevRows = rows.slice(0, -1).map((r) => r.slice());
+const prevOf = (name) => prevRows.find((r) => String(r[col("ProjectName")]).endsWith(" " + name));
+Object.assign(prevOf("DQ U5 Negative margin"), { [col("Contribution Margin Dollars_New")]: 4e5, [col("Incremental Contribution Margin Dollars")]: 3e5,
+  [col("Contribution Margin Dollars_Cann")]: 1e5, [col("Incremental Annual Contribution Margin Dollars")]: 6e4 });
+prevOf("DQ Clean name formats")[col("Brand")] = null;
+addProject("DQ Retired project", "incr", {}, true, prevRows);
 
 const people = [RESOURCE_HEADER].concat(PEOPLE.map((p) => {
   const r = new Array(RESOURCE_HEADER.length).fill(null);
@@ -134,4 +145,5 @@ function write(file, sheet, aoa) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   write("dq-project-fixture.xlsx", "Projects", rows);
   write("dq-resource-fixture.xlsx", "Resources", people);
+  write("dq-project-prev-fixture.xlsx", "Projects", prevRows);
 }

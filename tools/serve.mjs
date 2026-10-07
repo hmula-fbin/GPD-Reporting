@@ -9,6 +9,7 @@
   --data  workbook to serve as the data file (default: tests/fixtures/pipeline-fixture.xlsx).
           Put real extracts in data/ - that folder is git-ignored.
   --project / --resource  the two Data Quality files (default: tests/fixtures/dq-*-fixture.xlsx).
+  --snapshot  served as the project file's nightly copies for the last two days (default: tests/fixtures/dq-project-prev-fixture.xlsx).
   --user  display name returned by /_api/web/currentuser (default "Preview, Alex").
 */
 import http from "node:http";
@@ -26,6 +27,11 @@ const user = opt("user", "Preview, Alex");
 // Data Quality page: its two files (synthetic by default; real extracts go in data/)
 const projectFile = path.resolve(ROOT, opt("project", "tests/fixtures/dq-project-fixture.xlsx"));
 const resourceFile = path.resolve(ROOT, opt("resource", "tests/fixtures/dq-resource-fixture.xlsx"));
+// the nightly snapshots of the project file: yesterday and the day before (Eastern dates), both from this file
+const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-prev-fixture.xlsx"));
+const easternDate = (daysAgo) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
+  .format(new Date(Date.now() - daysAgo * 864e5));
+const snapshotNames = (project) => { const dot = project.lastIndexOf("."); return [2, 1].map((d) => project.slice(0, dot) + " " + easternDate(d) + project.slice(dot)); };
 const dist = path.join(ROOT, "dist", env);
 
 if (!fs.existsSync(path.join(dist, "manifest.json"))) { console.error("Run the build first: node build/build.mjs --env " + env); process.exit(1); }
@@ -45,14 +51,16 @@ http.createServer((req, res) => {
   if (url.includes("/_api/web/GetFolderByServerRelativePath") && url.includes("/Files")) {
     const folder = (/decodedurl='([^']*)'/.exec(url) || [])[1] || "";
     const files = manifest.dataFiles || {};
-    const list = [[files.pipeline, dataFile], [files.project, projectFile], [files.resource, resourceFile]]
+    const snaps = files.project ? snapshotNames(files.project).map((n) => [n, prevFile]) : [];
+    const list = [[files.pipeline, dataFile], [files.project, projectFile], [files.resource, resourceFile], ...snaps]
       .filter(([name, f]) => name && fs.existsSync(f))
       .map(([name, f]) => ({ Name: name, ServerRelativeUrl: folder + "/" + name, TimeLastModified: fs.statSync(f).mtime.toISOString() }));
     return json(res, { value: list });
   }
   if (url.includes("/_api/web/GetFileByServerRelativePath")) {
     const files = manifest.dataFiles || {};
-    const file = files.project && url.includes("/" + files.project + "'") ? projectFile
+    const snap = files.project && snapshotNames(files.project).some((n) => url.includes("/" + n + "'"));
+    const file = snap ? prevFile : files.project && url.includes("/" + files.project + "'") ? projectFile
                : files.resource && url.includes("/" + files.resource + "'") ? resourceFile : dataFile;
     if (!fs.existsSync(file)) return json(res, { error: "no fixture " + path.relative(ROOT, file) + " - run: npm run fixture" }, 404);
     if (url.includes("/$value")) {

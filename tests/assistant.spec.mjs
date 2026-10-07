@@ -92,6 +92,8 @@ test("the Data Quality page has the Copilot too", async ({ page }) => {
   await open(page, DQ);
   const a = await ask(page, "How many projects where Strategic Bucket is Improve?");
   expect(a.val).toBe(PROJ.filter((r) => r["Strategic Bucket"] === "Improve").length);
+  /* the nightly dated copies of the project file are history, not extra data: only the three files are read */
+  expect(await page.evaluate(() => window.gpdExplore.datasets().length)).toBe(3);
 });
 
 test("Copilot pulls any column for one project by its number, even written as 1st / 2nd", async ({ page }) => {
