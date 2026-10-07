@@ -1,9 +1,10 @@
 {
-  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod deploys need: the main branch, a clean tree, a version tag, the SAME commit already on the promoteFrom site (dev), a release owner, and typed confirmation.",
+  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod deploys need: the main branch, a clean tree, a version tag, the SAME commit already on the promoteFrom site (dev), a release owner, and typed confirmation. dataQuality false = the Data Quality page is not released here yet (Coming soon on Home and in the menu).",
   "env": "prod",
   "label": "Production",
   "sitePath": "/sites/GPDReporting",
   "showEnvBadge": false,
+  "dataQuality": false,
   "tenantUrl": "https://fbinportal.sharepoint.com",
   "pagesLibrary": "Report Pages",
   "dataLibrary": "Report Files",

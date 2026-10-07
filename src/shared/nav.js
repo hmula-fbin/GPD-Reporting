@@ -5,7 +5,10 @@
     {id:"home",  label:"Home",                 desc:"Overview and headline figures",                     icon:"home",    c:"var(--steel)", href:"{{PAGES_URL}}Home.aspx"},
     {section:"Dashboards"},
     {id:"score", label:"Portfolio Score Card", desc:"NPD pipeline, CI savings, funnel, review list", icon:"chart",   c:"var(--steel)",      href:"{{PAGES_URL}}Portfolio_Scorecard.aspx"},
-    {id:"dq",    label:"Data Quality",         desc:"21 data checks, flagged projects, daily tracking", icon:"check", c:"var(--steel)",      href:"{{PAGES_URL}}Data_Quality.aspx"},
+    /* switched off per environment in config ("dataQuality": false): shown as Soon, not linked */
+    (window.GPD_CONFIG || {}).dataQuality === false
+      ? {id:"dq", label:"Data Quality",         desc:"21 data checks, flagged projects, daily tracking", icon:"check", c:"var(--steel)",      href:null, tag:"Soon"}
+      : {id:"dq", label:"Data Quality",         desc:"21 data checks, flagged projects, daily tracking", icon:"check", c:"var(--steel)",      href:"{{PAGES_URL}}Data_Quality.aspx"},
     {id:"explore",label:"Portfolio Explorer",  desc:"Project-level search and drill-down",          icon:"explore", c:"var(--slate)",      href:null, tag:"Soon"}
   ];
   var CURRENT = document.body.getAttribute("data-page") || "";

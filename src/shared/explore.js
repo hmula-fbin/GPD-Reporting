@@ -45,12 +45,15 @@
   function api(path){ return CFG.sitePath + "/_api/web/" + path; }
   function rel(p){ return encodeURIComponent(String(p).replace(/'/g, "''")); }
   /* The nightly dated copies of a data file ("<name> MM-DD-YYYY.csv", see docs/DAILY-SNAPSHOT.md) are history,
-     not data to answer from: reading them would count every project once per day. */
+     not data to answer from: reading them would count every project once per day. So is an older copy of a data
+     file under another extension ("Project Data.xlsx" next to "Project Data.csv"): it would count every project twice. */
   function isSnapshot(name){
+    var low = name.toLowerCase();
     return [CFG.dataFile, CFG.projectFile, CFG.resourceFile].some(function(p){
       if (!p) return false;
-      var n = decodeURIComponent(String(p).split("/").pop()), dot = n.lastIndexOf("."), base = dot > 0 ? n.slice(0, dot) : n;
-      return name.toLowerCase().indexOf(base.toLowerCase() + " ") === 0 && /^ (\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})\.[a-z]+$/i.test(name.slice(base.length));
+      var n = decodeURIComponent(String(p).split("/").pop()), dot = n.lastIndexOf("."), base = (dot > 0 ? n.slice(0, dot) : n).toLowerCase();
+      if (low !== n.toLowerCase() && low.slice(0, low.lastIndexOf(".")) === base) return true;
+      return low.indexOf(base + " ") === 0 && /^ (\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})\.[a-z]+$/i.test(name.slice(base.length));
     });
   }
   function listFiles(){

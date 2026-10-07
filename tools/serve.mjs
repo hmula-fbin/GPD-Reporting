@@ -33,8 +33,9 @@ const prevFile = path.resolve(ROOT, opt("snapshot", "tests/fixtures/dq-project-p
 const easternDate = (daysAgo) => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
   .formatToParts(new Date(Date.now() - daysAgo * 864e5)).map((x) => [x.type, x.value])); return p.month + "-" + p.day + "-" + p.year; };
 const snapshotNames = (name) => { const dot = name.lastIndexOf("."); return [2, 1].map((d) => name.slice(0, dot) + " " + easternDate(d) + name.slice(dot)); };
+// ...plus an old .xlsx of each next to the .csv, as the real library still has (the Copilot must skip both kinds)
 const copiesOf = (files) => [[files.project, prevFile], [files.pipeline, dataFile], [files.resource, resourceFile]]
-  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]) : []);
+  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]).concat(/\.csv$/i.test(name) ? [[name.replace(/\.csv$/i, ".xlsx"), f]] : []) : []);
 const dist = path.join(ROOT, "dist", env);
 
 if (!fs.existsSync(path.join(dist, "manifest.json"))) { console.error("Run the build first: node build/build.mjs --env " + env); process.exit(1); }

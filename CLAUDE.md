@@ -31,7 +31,7 @@ The full process is in docs/TEAM-GUIDE.md.
 6. **Excel downloads**: one per table, plus "Download all projects" at the top. No Excel buttons on the scorecard's "Portfolio at a glance".
 7. **Filters sit in the left panel.** Drill-down works on bucket, stage, KPI and project rows. Hovering a Project Bucket shows the reference sheet from `config/bucket-reference.json`.
 8. **Home greeting**: time of day plus first name ("Good afternoon, Harinath"). No jokes or humour text. Home stays clean: no glance panel, intro sentence or hero button. (The exception is the Scorecard and Data Quality loading screens, which do show light time-of-day lines while data loads: `src/shared/loading.js`.)
-9. Portfolio Explorer is shelved and appears as "Soon" in the menu.
+9. Portfolio Explorer is shelved and appears as "Soon" in the menu. Data Quality is not released to Prod yet: `"dataQuality": false` in `config/prod.json` leaves Data_Quality.aspx out of the Prod build and shows it as Coming soon on Home and Soon in the menu. Set it to true (or remove it) when the page is ready for Prod.
 10. **Scorecard header** shows "Last refreshed <date, time>" only (not "data updated" or "loaded").
 
 ## SharePoint constraints (the build enforces these)
