@@ -90,6 +90,15 @@ test("month-over-month trend compares last month's month-end copy with today's d
   expect(await page.locator("body").innerText()).not.toMatch(FORBIDDEN);
 });
 
+test("the two headline cards show the figure only: no trend line, no change vs last month", async ({ page }) => {
+  await open(page, SCORE);
+  await page.waitForFunction(() => window.gpdTrendReady === true);   // last month is known, so a change could show
+  await expect(page.locator(".heroCard")).toHaveCount(2);
+  await expect(page.locator(".heroCard svg, .heroCard .spark")).toHaveCount(0);
+  await expect(page.locator(".heroCard .delta")).toHaveCount(0);
+  await expect(page.locator(".heroCard", { hasText: /last month|month-over-month/i })).toHaveCount(0);
+});
+
 test("the date column is called Ship-Trans Date everywhere on the scorecard", async ({ page }) => {
   await open(page, SCORE);
   const text = await page.locator("#content").innerText();
