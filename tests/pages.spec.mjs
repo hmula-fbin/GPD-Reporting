@@ -101,6 +101,7 @@ for (const [name, url, sel] of [["Scorecard", SCORE, "#content .tblwrap table"],
 test("a table box can be dragged taller and wider from its corner, and is remembered", async ({ page, isMobile }) => {
   test.skip(isMobile, "dragging is a mouse action");
   await open(page, SCORE);
+  await page.waitForFunction(() => window.gpdTrendReady === true);   /* the page redraws once last month is in: drag after that */
   const w = page.locator("#content .tblwrap").first();
   await w.evaluate((el) => { el.style.width = "700px"; });   /* start narrower than the card so there is room to widen */
   const b = await w.boundingBox();
@@ -124,6 +125,7 @@ test("resized tables scale with the screen instead of keeping a fixed pixel size
   test.skip(isMobile, "dragging is a mouse action");
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, SCORE);
+  await page.waitForFunction(() => window.gpdTrendReady === true);   /* the page redraws once last month is in: drag after that */
   const w = page.locator("#content .tblwrap").first();
   const share = () => w.evaluate((el) => el.getBoundingClientRect().width / el.parentElement.clientWidth);
   expect(await share()).toBeGreaterThan(0.99);                       /* untouched: fills its card */
@@ -135,8 +137,7 @@ test("resized tables scale with the screen instead of keeping a fixed pixel size
   const s1 = await share();
   expect(s1).toBeLessThan(0.85);
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.waitForTimeout(200);
-  expect(Math.abs((await share()) - s1)).toBeLessThan(0.02);       /* same share of the wider screen */
+  await expect.poll(async () => Math.abs((await share()) - s1)).toBeLessThan(0.02);   /* same share of the wider screen */
   await page.locator("#content .boxgrip").first().dblclick();
   expect(await share()).toBeGreaterThan(0.99);
 });
