@@ -193,21 +193,6 @@ function snapshotMetrics(rows, filters){
 }
 
 /* ---------- small inline SVG charts ---------- */
-function sparkline(vals,color,w,h){
-  w=w||132; h=h||44;
-  const v = vals.filter(x=>x!==null&&isFinite(x));
-  if (v.length<2) return '<svg width="'+w+'" height="'+h+'" role="presentation"></svg>';
-  const mn=Math.min.apply(null,v), mx=Math.max.apply(null,v), rg=(mx-mn)||Math.abs(mx)||1;
-  const pad=4, iw=w-pad*2, ih=h-pad*2;
-  const pts = v.map((y,i)=>[pad+(v.length===1?iw/2:i*iw/(v.length-1)), pad+ih-((y-mn)/rg)*ih]);
-  const line = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
-  const area = line+" L"+pts[pts.length-1][0].toFixed(1)+" "+(h-pad)+" L"+pts[0][0].toFixed(1)+" "+(h-pad)+" Z";
-  const last = pts[pts.length-1];
-  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="trend over the last '+v.length+' months">'
-    +'<path d="'+area+'" fill="'+color+'" opacity=".12"/>'
-    +'<path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'
-    +'<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="4" fill="'+color+'"/></svg>';
-}
 function trendChart(snaps,key,color,fmt){
   const w=300, h=108, pad={t:10,r:10,b:20,l:10};
   const v = snaps.map(s=>s.m[key]).map(x=> (x===null||x===undefined||!isFinite(x))?null:x);
@@ -246,14 +231,6 @@ function trendChart(snaps,key,color,fmt){
 }
 
 /* ---------- rendering ---------- */
-function deltaHTML(cur,prev,fmt){
-  if (prev===null||prev===undefined||!isFinite(prev)||cur===null||!isFinite(cur))
-    return '<div class="delta flat">No prior month to compare</div>';
-  const d=cur-prev, p = prev!==0 ? d/Math.abs(prev) : null;
-  const cls = Math.abs(d)<1e-9 ? "flat" : d>0 ? "up" : "down";
-  const sign = d>0?"+":"";
-  return '<div class="delta '+cls+'">'+sign+fmt(d)+(p!==null?" ("+sign+(p*100).toFixed(1)+"%)":"")+" vs last month</div>";
-}
 /* Capital Investment and Product Development Investment (shown as "PD Investment"), straight from the data file. */
 function invCells(x){
   return '<td title="'+moneyFull(x.capex)+'">'+money(x.capex)+'</td><td title="'+moneyFull(x.pdinv)+'">'+money(x.pdinv)+'</td>';
@@ -532,15 +509,13 @@ function scorecardView(c,hist,prev,filtered){
     + '</div>'
     + '<div class="val" title="'+moneyFull(c.npdTotal.ns)+'">'+money(c.npdTotal.ns)+'</div>'
     + '<div class="meta">'+c.kpi.npdN+' projects across Refresh &amp; Sustain, Grow the Core and Create &amp; Transform</div>'
-    + (filtered ? '<div class="delta flat">Month-over-month compares the full portfolio</div>' : deltaHTML(c.npdTotal.ns, prev?prev.m.npdNs:null, money))
-    + '</div><div class="spark">'+sparkline(hist.map(s=>s.m.npdNs),"var(--kpi)")+'</div></div>';
+    + '</div></div>';
   h += '<div class="heroCard ci" data-exp-id="'+heroCiId+'"><div class="txt">'
     + '<div class="labrow"><div class="lab">CI track \u2014 annualized CM (savings)</div>'
     + '</div>'
     + '<div class="val" title="'+moneyFull(c.ciTotal.cm)+'">'+money(c.ciTotal.cm)+'</div>'
     + '<div class="meta">'+c.kpi.ciN+' continuous improvement projects, held outside the NPD total</div>'
-    + (filtered ? '<div class="delta flat">Month-over-month compares the full portfolio</div>' : deltaHTML(c.ciTotal.cm, prev?prev.m.ciCm:null, money))
-    + '</div><div class="spark">'+sparkline(hist.map(s=>s.m.ciCm),"var(--kpi)")+'</div></div>';
+    + '</div></div>';
   h += '</div>';
 
   /* kpi strip */

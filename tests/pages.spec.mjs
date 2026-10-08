@@ -127,7 +127,8 @@ test("resized tables scale with the screen instead of keeping a fixed pixel size
   const w = page.locator("#content .tblwrap").first();
   const share = () => w.evaluate((el) => el.getBoundingClientRect().width / el.parentElement.clientWidth);
   expect(await share()).toBeGreaterThan(0.99);                       /* untouched: fills its card */
-  await page.locator("#content .boxgrip").first().scrollIntoViewIfNeeded();
+  /* mid-screen, so the corner isn't under the Copilot button (bottom right) */
+  await page.locator("#content .boxgrip").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
   const g = await page.locator("#content .boxgrip").first().boundingBox();
   await page.mouse.move(g.x + 8, g.y + 8); await page.mouse.down();
   await page.mouse.move(g.x + 8 - 300, g.y + 8, { steps: 6 }); await page.mouse.up();
