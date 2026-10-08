@@ -182,12 +182,14 @@ const DIMS = [
   {key:"ptype",   label:"Project type"},
   {key:"stage",   label:"Stage"},
   {key:"brand",   label:"Brand"},
-  {key:"sponsor", label:"Sponsor organization"}
+  {key:"sponsor", label:"Sponsor organization"},
+  {key:"owner",   label:"Project owner"},
+  {key:"pm",      label:"Product manager"}
 ];
 const NOT_SET = "(not set)";
 const ROWH = 30;
 const S = { P:[], roster:null, off:{}, missing:[], loadedAt:null, tab:"check",
-  f:null, q:"", scope:"all", ns:0, hl:true, fin:true, sort:"n", dir:-1, rows:[], snaps:[], snapState:"", cmp:null, series:"exceptions" };
+  f:null, q:"", scope:"all", hl:true, fin:true, sort:"n", dir:-1, rows:[], snaps:[], snapState:"", cmp:null, series:"exceptions" };
 const $ = id => document.getElementById(id);
 
 /* ---------- helpers ---------- */
@@ -282,7 +284,6 @@ const inSel = (sel, v) => !sel.length || sel.indexOf(v) > -1;
 const exOk = (e, skip) => (skip === "sev" || inSel(S.f.sev, String(e.sev))) && (skip === "rule" || inSel(S.f.rule, e.code));
 function passes(p, skip){
   if (S.scope === "flagged" && !p.n) return false;
-  if (S.ns > 0 && !(z(p.ns) > S.ns)) return false;
   if (S.q && (p.name + " " + p.owner + " " + p.pm + " " + p.brand + " " + p.sponsor + " " + p.id).toLowerCase().indexOf(S.q) < 0) return false;
   for (const d of DIMS){ const v = S.f[d.key]; if (v.length && skip !== d.key && v.indexOf(dimVal(p, d.key)) < 0) return false; }
   if ((S.f.sev.length && skip !== "sev") || (S.f.rule.length && skip !== "rule")) return p.ex.some(e => exOk(e, skip));
@@ -359,7 +360,7 @@ function fillFilters(){
     el.querySelector(".msbtn").classList.toggle("active", sel.length > 0);
     el.classList.toggle("active", sel.length > 0);
   });
-  [["fld_q", !!S.q], ["fld_scope", S.scope !== "all"], ["fld_ns", S.ns > 0]].forEach(x => $(x[0]).classList.toggle("active", x[1]));
+  [["fld_q", !!S.q], ["fld_scope", S.scope !== "all"]].forEach(x => $(x[0]).classList.toggle("active", x[1]));
 }
 function filterBits(){
   const b = [];
@@ -369,7 +370,6 @@ function filterBits(){
   ["bucket", "ptype", "stage", "brand", "sponsor"].forEach(k => { if (S.f[k].length) b.push(listText(k)); });
   if (S.f.sev.length) b.push("Severity = " + listText("sev"));
   if (S.f.rule.length) b.push("Rule = " + S.f.rule.join(", "));
-  if (S.ns > 0) b.push("NS > " + usd(S.ns));
   if (S.q) b.push("Search “" + S.q + "”");
   return b;
 }
@@ -739,7 +739,7 @@ function filterSheet(){
   return {name:"Filters applied", rows:[["Filter", "Value"], ["Project status", all("status")], ["Phase", all("phase")],
     ["Show", S.scope === "flagged" ? "Flagged only" : "All projects"], ["Strategic bucket", all("bucket")], ["Project type", all("ptype")],
     ["Stage", all("stage")], ["Brand", all("brand")], ["Sponsor organization", all("sponsor")], ["Severity", all("sev")],
-    ["Rule", all("rule")], ["Net sales greater than", S.ns || 0], ["Project search", S.q || "(none)"], [],
+    ["Rule", all("rule")], ["Project search", S.q || "(none)"], [],
     ["Projects in view", st.n], ["Projects needing review", st.flagged], ["Open exceptions", st.exc], ["Critical", st.sev[0]], ["High", st.sev[1]],
     ["Medium", st.sev[2]], ["Low", st.sev[3]], [], ["Last refreshed", S.loadedAt ? S.loadedAt.toLocaleString("en-US") : ""],
     ["Rule set", "v2.1 — 21 checks"], ["Downloaded", new Date().toLocaleString("en-US")]]};
@@ -866,12 +866,11 @@ $("xlCmpBtn").onclick = () => { exportCompare(); flash($("xlCmpBtn"), DL_ICON + 
 $("hlBtn").onclick = () => { S.hl = !S.hl; $("hlBtn").setAttribute("aria-pressed", String(S.hl)); $("hlBtn").textContent = S.hl ? "Highlight errors" : "Highlighting off"; renderHlKey(); drawRows(false); };
 $("finBtn").onclick = () => { S.fin = !S.fin; $("finBtn").setAttribute("aria-pressed", String(S.fin)); $("finBtn").textContent = S.fin ? "Financials on" : "Financials off"; renderHead(); drawRows(false); };
 let qt; $("fQ").oninput = () => { clearTimeout(qt); qt = setTimeout(() => { S.q = $("fQ").value.trim().toLowerCase(); refresh(); }, 140); };
-let nt; $("fNs").oninput = () => { clearTimeout(nt); nt = setTimeout(() => { const v = parseFloat($("fNs").value); S.ns = isFinite(v) && v > 0 ? v : 0; refresh(); }, 200); };
 $("fScope").onchange = () => { S.scope = $("fScope").value; refresh(); };
 $("resetBtn").onclick = () => {
   if (!S.P.length) return;
-  S.f = defaults(); S.q = ""; S.ns = 0; S.scope = "all"; S.sort = "n"; S.dir = -1;
-  $("fQ").value = ""; $("fNs").value = "0"; $("fScope").value = "all";
+  S.f = defaults(); S.q = ""; S.scope = "all"; S.sort = "n"; S.dir = -1;
+  $("fQ").value = ""; $("fScope").value = "all";
   renderHead(); refresh();
 };
 

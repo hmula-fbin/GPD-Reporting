@@ -30,7 +30,14 @@
 .rail .msopt.zero .msname,.rail .msopt.zero .mscount{opacity:.4}
 .fld.active select,.fld.active input{background-color:color-mix(in srgb,var(--kpi) 9%,var(--panel));border-color:var(--kpi);color:var(--kpi);font-weight:600}
 @media (min-width:1100px){
-  .rail .fld select,.rail .fld input:not([type=checkbox]){width:100%;max-width:none;padding:7px 9px;font-size:12.5px}
+  /* a slightly smaller filter panel than the Scorecard's: narrower, with tighter boxes and spacing */
+  .layout{grid-template-columns:240px minmax(0,1fr)}
+  .rail .wrap{gap:9px;padding:14px 14px 22px}
+  .rail .fld{gap:1px}
+  .rail .fld label{font-size:10.5px}
+  .rail .msbtn{padding:5px 8px;font-size:12px}
+  .rail .fld select,.rail .fld input:not([type=checkbox]){width:100%;max-width:none;padding:5px 8px;font-size:12px}
+  .rail .inview{padding:8px 10px}
   .rail #resetBtn{align-self:stretch;justify-content:center}
 }
 @media (max-width:1099px){
