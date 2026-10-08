@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4.0 - 2026-10-08
+- Scorecard: new tab "Longer than forecasted" lists the projects whose forecast execution time is over the review line.
+- Month-over-month trend: each past month now shows its month-end figures, read from the month-end copy of the portfolio data, and this month shows today's. The comparison appears for everyone straight away and each new month adds itself. If a month's figures can't be read, the tab says so.
+- Scorecard: the date column is now called "Ship-Trans Date" (it was "End date" in the tables and "Finish" in the drill-down and the Excel download).
+- "Ask questions about your data" counts active people correctly.
+- Data Quality Dashboard (Dev only, still "Coming soon" on Prod): rules show their names instead of codes, and active project owners and product managers are no longer wrongly flagged as having left.
+
 ## v1.3.2 - 2026-10-07
 - Scorecard tables work like frozen panes in Excel: the heading row and the first column stay in place while you scroll. Long tables scroll inside their own box.
 - Wide tables have left and right arrows beside them, so you can scroll sideways without hunting for the scroll bar.
