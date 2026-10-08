@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.2 - 2026-10-08
+- Scorecard: "PD Investment" is now called "PD Expense", in every table, the drill-down and the Excel downloads.
+- Scorecard: the "Longer than forecasted" tab is now called "Projects > Target Duration". Home and the menu describe it the same way, and "Ask questions about your data" understands "target duration".
+
 ## v1.4.1 - 2026-10-08
 - Scorecard: the two headline cards (NPD annualized net sales and CI annualized CM) show just the figure. The small trend lines and the change vs last month are gone; the Month-over-month trend tab still shows both.
 
