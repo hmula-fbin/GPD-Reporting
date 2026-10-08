@@ -475,7 +475,7 @@ function render(){
   S.last = c;
   $("inviewN").textContent = c.kpi.inView;
 
-  const hist = S.snaps.slice().sort((a,b)=>a.month<b.month?-1:1);
+  const hist = allSnaps();
   const curKey = monthKey();
   const prior = hist.filter(s=>s.month!==curKey);
   const prev = prior.length ? prior[prior.length-1] : null;
@@ -612,7 +612,7 @@ function trendView(histAll){
     return true;
   });
   const hist = usable.map(sn => ({month:sn.month, capturedAt:sn.capturedAt, fileName:sn.fileName,
-                                  m: metricsFor(sn)}));
+                                  m: metricsFor(sn), copy:!!sn.copy}));
 
   let h = '<div class="tnote"><span>' + (active
       ? 'Showing the <strong>filtered</strong> view \u2014 every month below is recalculated against the filters you set above.'
@@ -688,7 +688,7 @@ function movementTable(hist, title, key, labels, sub){
 
 function trendSection(hist){
   if (!hist.length) return '<div class="empty"><b>The trend starts building this month</b>'
-    + 'Each month the dashboard keeps one snapshot of the full portfolio. Next month adds the second point and the comparison appears here.</div>';
+    + 'Each past month is shown with its month-end figures, and this month with today’s. Once last month’s figures are saved the comparison appears here.</div>';
   const cur = hist[hist.length-1], prv = hist.length>1 ? hist[hist.length-2] : null;
   const card = (label,key,fmt,color) => {
     const v=cur.m[key], p=prv?prv.m[key]:null;
@@ -734,9 +734,10 @@ function trendSection(hist){
     + hist.slice().reverse().map(sn =>
         '<div class="mgrow"><span class="mgm">'+esc(monthLabel(sn.month))+'</span>'
         + '<span class="mgf">'+Math.round(sn.m.projects)+' projects</span>'
-        + '<input type="month" value="'+esc(sn.month)+'" data-move="'+esc(sn.month)+'" aria-label="Move '+esc(monthLabel(sn.month))+' to another month">'
+        + (sn.copy ? '<span class="muted">month-end figures</span></div>' :
+          '<input type="month" value="'+esc(sn.month)+'" data-move="'+esc(sn.month)+'" aria-label="Move '+esc(monthLabel(sn.month))+' to another month">'
         + '<button class="btn sm" data-moveto="'+esc(sn.month)+'">Move</button>'
-        + '<button class="btn sm danger" data-del="'+esc(sn.month)+'">Delete</button></div>').join("")
+        + '<button class="btn sm danger" data-del="'+esc(sn.month)+'">Delete</button></div>')).join("")
     + '</details>';
   const histId = expId("Monthly snapshot history","table");
   h += expBar("Monthly snapshot history", histId)
@@ -750,7 +751,7 @@ function renderFoot(){
   const f=$("foot"); f.hidden=false;
   const m=S.meta;
   f.innerHTML = '<span>Last refresh: '+(m?new Date(m.uploadedAt).toLocaleString("en-US"):"\u2014")+'</span>'
-    + '<span>'+S.snaps.length+' monthly snapshot'+(S.snaps.length===1?"":"s")+' stored</span>'
+    + '<span>'+allSnaps().length+' month'+(allSnaps().length===1?"":"s")+' of history</span>'
     + '<span>NPD = Refresh &amp; Sustain + Grow the Core + Create &amp; Transform. CI and CRQ reported separately.</span>';
 }
 
@@ -1052,6 +1053,7 @@ function flash(btn,msg){
 
 async function loadSnapRows(sn){
   if (sn.rows) return sn.rows;
+  if (sn.url){ try{ sn.rows = await readCopy(sn); }catch(e){ console.warn("month copy failed",e); } return sn.rows || null; }
   if (!S.db || !sn.chunkCount) return null;
   try{
     let rows=[];
@@ -1067,8 +1069,9 @@ async function loadSnapRows(sn){
 const storedOk = sn => !filtersActive() && sn.dv === DEFAULT_VIEW;
 /* Only needed when a month cannot use its stored totals. */
 async function prepareTrend(){
-  if (S.tab !== "trend" || S.snaps.every(storedOk)) return;
-  const need = S.snaps.filter(sn => sn.chunkCount && !sn.rows);
+  const all = allSnaps();
+  if (S.tab !== "trend" || all.every(storedOk)) return;
+  const need = all.filter(sn => sn.chunkCount && !sn.rows);
   if (!need.length) return;
   S.trendLoading = true; render();
   for (const sn of need) await loadSnapRows(sn);
@@ -1126,6 +1129,66 @@ async function moveSnapshot(from, to){
     }catch(e){ console.warn(e); }
   }
   render();
+}
+
+/* ---------- month-end copies ---------- */
+/* A scheduled flow saves dated copies of the pipeline file next to it, "<file name> MM-DD-YYYY.csv"
+   (YYYY-MM-DD also works). The latest copy in each past month stands for that month in the trend, and
+   the live file stands for this month, so the trend is the same for everyone from the first visit.
+   A copy never changes, so its totals are cached in this browser and each copy is read once. */
+const LS_COPIES = "fbin_scorecard_monthcopies_v1", COPY_MONTHS = 24;
+const COPY_RE = (() => {
+  const n = decodeURIComponent(SOURCE.file.split("/").pop()), dot = n.lastIndexOf("."), base = dot > 0 ? n.slice(0, dot) : n;
+  return new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + " (\\d{2}-\\d{2}-\\d{4}|\\d{4}-\\d{2}-\\d{2})\\.(csv|xlsx|xlsm|xls)$", "i");
+})();
+const copyDate = s => /^\d{2}-\d{2}-\d{4}$/.test(s) ? s.slice(6)+"-"+s.slice(0,2)+"-"+s.slice(3,5) : s;   /* as YYYY-MM-DD */
+async function listMonthCopies(){
+  const r = await fetch(SOURCE.site + "/_api/web/GetFolderByServerRelativePath(decodedurl='" + spPath(GPD_CONFIG.dataFolder) + "')/Files?$select=Name,ServerRelativeUrl,TimeLastModified",
+    {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}});
+  if (!r.ok) throw new Error("list " + r.status);
+  const cur = monthKey(), best = {};
+  ((await r.json()).value || []).forEach(f => {
+    const m = COPY_RE.exec(f.Name); if (!m) return;
+    const date = copyDate(m[1]), month = date.slice(0, 7), csv = /\.csv$/i.test(f.Name), o = best[month];
+    if (month >= cur) return;                                   /* this month comes from the live file */
+    if (!o || date > o.date || (date === o.date && csv && !o.csv)) best[month] = {month, date, csv, url:f.ServerRelativeUrl, modified:f.TimeLastModified || ""};
+  });
+  return Object.values(best).sort((a,b)=>a.month<b.month?-1:1).slice(-COPY_MONTHS);
+}
+async function readCopy(c){
+  const r = await fetch(SOURCE.site + "/_api/web/GetFileByServerRelativePath(decodedurl='" + spPath(c.url) + "')/$value", {credentials:"include", cache:"no-store"});
+  if (!r.ok) throw new Error("copy " + r.status);
+  return parseWorkbook(await r.arrayBuffer(), null).rows;
+}
+let copyRun = 0;
+async function loadMonthCopies(){
+  const run = ++copyRun, cache = lsGet(LS_COPIES) || {}, keep = {}, out = [];
+  let list;
+  try{ list = await listMonthCopies(); }catch(e){ console.warn("month copies failed", e); window.gpdTrendReady = true; return; }
+  for (const c of list){
+    const k = c.date + "|" + c.modified + "|" + DEFAULT_VIEW;
+    const had = (S.copies || []).find(x => x.k === k);         /* already read this session */
+    if (had){ out.push(had); keep[k] = had.m; continue; }
+    let m = cache[k], rows = null;
+    if (!m){
+      try{ rows = await readCopy(c); m = snapshotMetrics(rows); }catch(e){ console.warn("month copy failed", e); continue; }
+      if (run !== copyRun) return;
+    }
+    keep[k] = m;
+    out.push({k, month:c.month, capturedAt:c.date + "T12:00:00", fileName:null, m, dv:DEFAULT_VIEW,
+              rowCount:rows ? rows.length : 0, chunkCount:1, rows, url:c.url, copy:true});
+  }
+  lsSet(LS_COPIES, keep);
+  S.copies = out;
+  if (S.rows.length){ render(); prepareTrend(); }
+  window.gpdTrendReady = true;
+}
+/* Every month in the trend: a month-end copy where there is one, otherwise what this browser stored. */
+function allSnaps(){
+  const by = {};
+  S.snaps.forEach(s => { by[s.month] = s; });
+  (S.copies || []).forEach(c => { by[c.month] = c; });
+  return Object.values(by).sort((a,b)=>a.month<b.month?-1:1);
 }
 
 /* ---------- ingest ---------- */
@@ -1257,6 +1320,7 @@ async function reloadData(){
     await captureSnapshot(false);                 /* this month's snapshot always reflects the latest workbook */
     S.origin = "shared"; S.originErr = null;
     render(); refreshSourcePill(); showOrigin(); prepareTrend();
+    loadMonthCopies();                            /* past months, from the month-end copies */
   }catch(err){
     console.error(err);
     S.origin = "error"; S.originErr = err && err.message ? err.message : String(err);

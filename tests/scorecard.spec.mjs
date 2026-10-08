@@ -1,6 +1,6 @@
 // Scorecard behaviour that the business asked for. If one of these fails, a requirement broke.
 import { test, expect } from "@playwright/test";
-import { SCORE, open, allRows, inDefaultView } from "./helpers.mjs";
+import { SCORE, open, allRows, inDefaultView, FORBIDDEN } from "./helpers.mjs";
 
 const NPD = ["Grow the Core", "Refresh & Sustain", "Create & Transform"];
 
@@ -60,6 +60,30 @@ test("projects with longer execution time than forecasted have their own tab", a
   }
   await page.click("#tab_score");
   await expect(page.locator("#content h2", { hasText: "Portfolio at a glance" })).toBeVisible();
+});
+
+test("month-over-month trend compares last month's month-end copy with today's data", async ({ page }) => {
+  await open(page, SCORE);
+  await page.waitForFunction(() => window.gpdTrendReady === true);
+  // last month comes from its month-end copy, not the mid-month one; this month is the live data
+  const t = await page.evaluate(async () => {
+    const d = new Date(), c = S.copies[S.copies.length - 1];
+    return { cur: monthLabel(monthKey()), last: monthLabel(monthKey(new Date(d.getFullYear(), d.getMonth() - 1, 1))),
+      day: c.capturedAt.slice(8, 10), endDay: String(new Date(d.getFullYear(), d.getMonth(), 0).getDate()),
+      lastN: snapshotMetrics(await readCopy(c)).projects, nowN: S.last.kpi.inView };
+  });
+  expect(t.day).toBe(t.endDay);
+  expect(t.lastN).not.toBe(t.nowN);
+  await page.click("#tab_trend");
+  await expect(page.locator("#tabTrendN")).toHaveText("2");
+  const rows = page.locator("#content table:has(th:text-is('Change vs prior')) tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0).locator("td").nth(0)).toContainText(t.cur);
+  await expect(rows.nth(0).locator("td").nth(1)).toHaveText(String(t.nowN));
+  await expect(rows.nth(1).locator("td").nth(0)).toHaveText(t.last);
+  await expect(rows.nth(1).locator("td").nth(1)).toHaveText(String(t.lastN));
+  await expect(rows.nth(0).locator("td").nth(4)).not.toHaveText("—");   // a change vs last month is shown
+  expect(await page.locator("body").innerText()).not.toMatch(FORBIDDEN);
 });
 
 test("Download all projects gives an .xlsx", async ({ page }) => {

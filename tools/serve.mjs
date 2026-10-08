@@ -34,8 +34,19 @@ const easternDate = (daysAgo) => { const p = Object.fromEntries(new Intl.DateTim
   .formatToParts(new Date(Date.now() - daysAgo * 864e5)).map((x) => [x.type, x.value])); return p.month + "-" + p.day + "-" + p.year; };
 const snapshotNames = (name) => { const dot = name.lastIndexOf("."); return [2, 1].map((d) => name.slice(0, dot) + " " + easternDate(d) + name.slice(dot)); };
 // ...plus an old .xlsx of each next to the .csv, as the real library still has (the Copilot must skip both kinds)
+// The pipeline file also has last month's copies for the month-over-month trend: one mid-month (today's data,
+// which the trend must not use) and the month-end one (tests/fixtures/pipeline-prev-fixture.csv), which it must.
+const pipelinePrev = path.resolve(ROOT, opt("lastmonth", "tests/fixtures/pipeline-prev-fixture.csv"));
+const lastMonthNames = (name) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "numeric" })
+    .formatToParts(new Date()).map((x) => [x.type, x.value]));
+  const end = new Date(Date.UTC(+p.year, +p.month - 1, 0)), mm = String(end.getUTCMonth() + 1).padStart(2, "0"), yy = end.getUTCFullYear();
+  const dot = name.lastIndexOf("."), at = (d) => name.slice(0, dot) + " " + mm + "-" + d + "-" + yy + name.slice(dot);
+  return [[at("15"), dataFile], [at(String(end.getUTCDate())), pipelinePrev]];
+};
 const copiesOf = (files) => [[files.project, prevFile], [files.pipeline, dataFile], [files.resource, resourceFile]]
-  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]).concat(/\.csv$/i.test(name) ? [[name.replace(/\.csv$/i, ".xlsx"), f]] : []) : []);
+  .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]).concat(/\.csv$/i.test(name) ? [[name.replace(/\.csv$/i, ".xlsx"), f]] : []) : [])
+  .concat(files.pipeline ? lastMonthNames(files.pipeline) : []);
 const dist = path.join(ROOT, "dist", env);
 
 if (!fs.existsSync(path.join(dist, "manifest.json"))) { console.error("Run the build first: node build/build.mjs --env " + env); process.exit(1); }
