@@ -44,8 +44,10 @@ test("no Excel buttons on Portfolio at a glance; one per table elsewhere", async
   expect(await page.locator(".expbtn").count()).toBeGreaterThan(2);
 });
 
-test("projects with longer execution time than forecasted have their own tab", async ({ page }) => {
+test("projects with longer execution time than forecasted have their own tab, Projects > Target Duration", async ({ page }) => {
   await open(page, SCORE);
+  await expect(page.locator("#tab_review")).toContainText("Projects > Target Duration");
+  await expect(page.locator("body")).not.toContainText(/longer than forecasted/i);
   await expect(page.locator("#content h2", { hasText: /longer execution time than forecasted/i })).toHaveCount(0);
   const n = await page.evaluate(() => S.last.review.length);
   await expect(page.locator("#tabReviewN")).toHaveText(String(n));
@@ -169,11 +171,11 @@ test("Refresh now reloads the data", async ({ page }) => {
   await expect(page.locator("#inviewN")).toHaveText(before);
 });
 
-test("every scorecard table shows Capital Investment and PD Investment from the data file", async ({ page }) => {
+test("every scorecard table shows Capital Investment and PD Expense from the data file", async ({ page }) => {
   await open(page, SCORE);
   const heads = await page.locator("#content .tblwrap table").evaluateAll((ts) => ts.map((t) => Array.from(t.querySelectorAll("thead th")).map((th) => th.textContent.trim())));
   expect(heads.length).toBeGreaterThan(4);
-  for (const h of heads) { expect(h).toContain("Capital Investment"); expect(h).toContain("PD Investment"); }
+  for (const h of heads) { expect(h).toContain("Capital Investment"); expect(h).toContain("PD Expense"); expect(h).not.toContain("PD Investment"); }
   const t = await page.evaluate(() => {
     const npd = S.last.view.filter((r) => ["Grow the Core", "Refresh & Sustain", "Create & Transform"].includes(r.bucket));
     return { capex: S.last.npdTotal.capex, pdinv: S.last.npdTotal.pdinv, sumCapex: npd.reduce((a, r) => a + (r.capex || 0), 0), sumPd: npd.reduce((a, r) => a + (r.pdinv || 0), 0) };
