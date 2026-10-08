@@ -744,7 +744,6 @@ function filterSheet(){
     ["Medium", st.sev[2]], ["Low", st.sev[3]], [], ["Last refreshed", S.loadedAt ? S.loadedAt.toLocaleString("en-US") : ""],
     ["Rule set", "v2.1 — 21 checks"], ["Downloaded", new Date().toLocaleString("en-US")]]};
 }
-function exportAll(){ saveXlsx("Data_Quality_All_Projects_" + todayKey() + ".xlsx", projectSheets(S.P)); }
 function exportView(){ saveXlsx("Data_Quality_Dashboard_" + todayKey() + ".xlsx", projectSheets(S.rows)); }
 function exportLog(){
   const rows = [["Date", "Projects", "Projects needing review", "Open exceptions", "Change vs previous", "Critical", "High", "Medium", "Low"]];
@@ -859,7 +858,6 @@ $("tab_check").onclick = () => setTab("check");
 $("tab_track").onclick = () => setTab("track");
 $("reloadBtn").onclick = () => reloadData();
 $("notesBtn").onclick = () => { if (S.P.length) openNotes(); };
-$("dlAllBtn").onclick = () => { if (S.P.length){ exportAll(); flash($("dlAllBtn"), '<svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/></svg><span>Downloaded</span>'); } };
 $("xlGridBtn").onclick = () => { if (S.P.length){ exportView(); flash($("xlGridBtn"), DL_ICON + "Downloaded"); } };
 $("xlLogBtn").onclick = () => { exportLog(); flash($("xlLogBtn"), DL_ICON + "Downloaded"); };
 $("xlCmpBtn").onclick = () => { exportCompare(); flash($("xlCmpBtn"), DL_ICON + "Downloaded"); };

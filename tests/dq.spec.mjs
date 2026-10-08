@@ -131,9 +131,11 @@ test("KPI figures use one colour (no red / amber / green)", async ({ page }) => 
   for (const v of cols.vals) expect(v).toBe(rgb);
 });
 
-test("Excel downloads: the grid, Download all projects, and the daily tracking", async ({ page }) => {
+test("Excel downloads: the grid and the daily tracking; no Download all projects button", async ({ page }) => {
   await open(page, DQ);
-  for (const sel of ["#xlGridBtn", "#dlAllBtn"]) {
+  await expect(page.locator("#dlAllBtn")).toHaveCount(0);
+  await expect(page.locator(".masthead")).not.toContainText(/download all/i);
+  for (const sel of ["#xlGridBtn"]) {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click(sel)]);
     expect(dl.suggestedFilename()).toMatch(/.xlsx$/);
   }
@@ -242,4 +244,10 @@ test("Project owner and Product manager filters; no Net sales filter; a compact 
   await tick(page, "pm", pm);
   await expect.poll(shown).toBe(all.filter((p) => p.pm === pm).length);
   if (!isMobile) expect((await page.locator(".rail").boundingBox()).width).toBeLessThanOrEqual(241);   /* narrower than the Scorecard's 272px */
+});
+
+test("the header is compact: less empty space above the figures than on the Scorecard", async ({ page, isMobile }) => {
+  test.skip(isMobile, "measured on desktop");
+  await open(page, DQ);
+  expect((await page.locator(".masthead").boundingBox()).height).toBeLessThanOrEqual(110);
 });
