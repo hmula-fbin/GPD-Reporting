@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.4.1 - 2026-10-08
+- Scorecard: the two headline cards (NPD annualized net sales and CI annualized CM) show just the figure. The small trend lines and the change vs last month are gone; the Month-over-month trend tab still shows both.
+
 ## v1.4.0 - 2026-10-08
 - Scorecard: new tab "Longer than forecasted" lists the projects whose forecast execution time is over the review line.
 - Month-over-month trend: each past month now shows its month-end figures, read from the month-end copy of the portfolio data, and this month shows today's. The comparison appears for everyone straight away and each new month adds itself. If a month's figures can't be read, the tab says so.
