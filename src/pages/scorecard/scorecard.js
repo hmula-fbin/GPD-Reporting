@@ -36,7 +36,7 @@ const TRACKED = [
 /* ---------- state ---------- */
 const S = { rows:[], meta:null, present:{}, snaps:[], filters:null, threshold:GPD_CONFIG.reviewMonths, tab:"score", exp:{}, expSeq:0, origin:null, originErr:null, db:null, user:null, canWrite:null };
 const TABS = ["score","review","trend"];
-const TAB_NAME = {score:"Scorecard", review:"Longer than forecasted", trend:"Month-over-month trend"};
+const TAB_NAME = {score:"Scorecard", review:"Projects > Target Duration", trend:"Month-over-month trend"};
 const $ = id => document.getElementById(id);
 
 /* ---------- helpers ---------- */
@@ -231,7 +231,7 @@ function trendChart(snaps,key,color,fmt){
 }
 
 /* ---------- rendering ---------- */
-/* Capital Investment and Product Development Investment (shown as "PD Investment"), straight from the data file. */
+/* Capital Investment and Product Development Investment (shown as "PD Expense"), straight from the data file. */
 function invCells(x){
   return '<td title="'+moneyFull(x.capex)+'">'+money(x.capex)+'</td><td title="'+moneyFull(x.pdinv)+'">'+money(x.pdinv)+'</td>';
 }
@@ -252,8 +252,8 @@ function totalRow(b,denom,label){
     +'<td>'+(b.ns?pct(b.cm/b.ns,1):"\u2014")+'</td>'+invCells(b)+'</tr>';
 }
 const TBL_HEAD = '<thead><tr><th>Bucket</th><th># Projects</th><th>% of pipeline</th><th>Execution time (mo)</th>'
-  +'<th>Annualized NS</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>';
-const FUNNEL_HEAD = '<thead><tr><th>Stage</th><th># Projects</th><th>% of track</th><th>Exec (mo)</th><th>Annualized NS</th><th>Annualized CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>';
+  +'<th>Annualized NS</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Expense</th></tr></thead>';
+const FUNNEL_HEAD = '<thead><tr><th>Stage</th><th># Projects</th><th>% of track</th><th>Exec (mo)</th><th>Annualized NS</th><th>Annualized CM</th><th>CM %</th><th>Capital Investment</th><th>PD Expense</th></tr></thead>';
 
 function funnelTable(f,color,caption){
   const tot=f.total.n||1;
@@ -293,7 +293,7 @@ function projectTable(list,valueLabel,id){
   });
   if(!list.length) body='<tr><td colspan="11" class="muted">No projects match the current filters.</td></tr>';
   return expTable(id, '<table><thead><tr><th>Project</th><th>Bucket</th><th>Ship-Trans Date</th><th>Exec (mo)</th>'
-    +'<th>'+esc(valueLabel)+'</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>'
+    +'<th>'+esc(valueLabel)+'</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Expense</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>');
 }
 function reviewTable(list,threshold,id){
@@ -309,7 +309,7 @@ function reviewTable(list,threshold,id){
   if(!list.length) body='<tr><td colspan="10" class="muted">Nothing over '+threshold+' months. </td></tr>';
   const more = list.length>25 ? '<div class="fnote">Showing the 25 longest of '+list.length+' projects over the threshold.</div>' : "";
   return expTable(id, '<table><thead><tr><th>Project (longest first)</th><th>Bucket</th><th>Stage</th>'
-    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>Capital Investment</th><th>PD Investment</th><th>Ship-Trans Date</th></tr></thead>'
+    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>Capital Investment</th><th>PD Expense</th><th>Ship-Trans Date</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>'+more);
 }
 
@@ -425,14 +425,14 @@ function exportView(){
     if (e && rows.length) sheets.push({name:e.name, rows:rows});
   });
   sheets.push({name:"About", rows: expContext()});
-  saveXlsx(({trend:"portfolio-trend-", review:"portfolio-longer-than-forecasted-"}[S.tab]||"portfolio-scorecard-")+stamp()+".xlsx", sheets);
+  saveXlsx(({trend:"portfolio-trend-", review:"portfolio-projects-over-target-duration-"}[S.tab]||"portfolio-scorecard-")+stamp()+".xlsx", sheets);
 }
 /* Every project in the data, plus the ones in the current view. */
 const PROJECT_COLS = [["Project","name"],["Status","status"],["Bucket","bucket"],["Stage","stage"],["Owner","owner"],
   ["Business unit","bu"],["Business","biz"],["Brand","brand"],["Market","mkt"],["Ship-Trans Date","finish"],["Finish year","fy"],
   ["Target execution (months)","tgt"],["Forecast execution (months)","fc"],["Annualized net sales","ns"],["Annualized CM","cm"],
   ["Annualized incremental NS","ins"],["Annualized incremental CM","icm"],["Total investment (OPEX+CAPEX)","inv"],
-  ["Capital Investment","capex"],["PD Investment","pdinv"]];
+  ["Capital Investment","capex"],["PD Expense","pdinv"]];
 function projectRows(list){
   return [PROJECT_COLS.map(c=>c[0])].concat(list.map(r => PROJECT_COLS.map(c => {
     const v = r[c[1]]; return v === null || v === undefined ? "" : v; })));
@@ -571,7 +571,7 @@ function scorecardView(c,hist,prev,filtered){
 
 /* Its own tab: projects whose forecast execution time runs past the review line. */
 function reviewView(c){
-  const reviewId = expId("Longer than forecasted over "+S.threshold+" months","table");
+  const reviewId = expId("Projects over target duration ("+S.threshold+" months)","table");
   return '<section><div class="shead"><h2>Projects that have longer execution time than forecasted</h2><span class="sub">forecast execution time over '+S.threshold+' months</span>'
     + '<span class="act">'+expBtn(reviewId,"the projects with longer execution time than forecasted")+'</span></div>'
     + reviewTable(c.review,S.threshold,reviewId)+'</section>';

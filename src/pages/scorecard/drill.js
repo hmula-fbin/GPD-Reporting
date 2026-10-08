@@ -88,7 +88,7 @@
   }
   function show(){ document.body.classList.add("dr-open"); $("drPanel").setAttribute("aria-hidden","false"); setTimeout(()=>$("drClose").focus(),60); }
   function hide(){ document.body.classList.remove("dr-open"); $("drPanel").setAttribute("aria-hidden","true"); }
-  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Ship-Trans Date",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0],["capex","Capital Investment",0],["pdinv","PD Investment",0]];
+  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Ship-Trans Date",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0],["capex","Capital Investment",0],["pdinv","PD Expense",0]];
   function val(r,k){ return k==="_st" ? (stageOf(r)||strip(r.stage)) : r[k]; }
   function strip(v){ return String(v||"").replace(/^[\d\s]+/,""); }
   function rows(){
@@ -132,7 +132,7 @@
       +'<div class="'+st+'"><span>Forecast</span><i><b style="width:'+((r.fc||0)/mx*100).toFixed(1)+'%"></b></i><em>'+mo2(r.fc)+'</em></div></div>'
       +(behind?'<p class="drnote">Forecast is '+(r.fc-r.tgt).toFixed(1)+' months over target'+(r.fc>R?' and over the '+R+'-month review line':'')+'.</p>':(r.fc!=null&&r.tgt!=null?'<p class="drnote">Forecast is on or under target.</p>':''))
       +'<h3>Financials (annualized)</h3>'+dl([["Net sales",money(r.ns)],["Contribution margin",money(r.cm)],["CM %",r.ns?((r.cm/r.ns)*100).toFixed(1)+"%":"\u2014"],
-          ["Incremental net sales",money(r.ins)],["Incremental CM",money(r.icm)],["Total investment",money(r.inv)],["Capital Investment",money(r.capex)],["PD Investment",money(r.pdinv)]])
+          ["Incremental net sales",money(r.ins)],["Incremental CM",money(r.icm)],["Total investment",money(r.inv)],["Capital Investment",money(r.capex)],["PD Expense",money(r.pdinv)]])
       +'<h3>Ownership &amp; scope</h3>'+dl([["Owner",r.owner],["Business unit",strip(r.bu)],["Business",strip(r.biz)],["Brand",r.brand],["Market",r.mkt],["Bucket",r.bucket]]);
     $("drPanel").querySelector(".drbody").scrollTop=0;
     show();
