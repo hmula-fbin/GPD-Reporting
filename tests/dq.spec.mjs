@@ -38,7 +38,7 @@ test("opens on Project status = In Progress and Phase = Active Phase, status sit
   const live = d.projects.filter((p) => p.status === "In Progress" && /\bactive\b/i.test(p.phase)).length;
   await expect(page.locator("#inviewN")).toHaveText(String(live));
   const keys = await page.locator("#filterFields .ms").evaluateAll((els) => els.map((e) => e.dataset.key));
-  expect(keys).toEqual(["status", "phase", "bucket", "ptype", "stage", "brand", "sponsor", "sev", "rule"]);
+  expect(keys).toEqual(["status", "phase", "bucket", "ptype", "stage", "brand", "sponsor", "owner", "pm", "sev", "rule"]);
   await expect(page.locator("#fld_status .mslab")).toHaveText("In Progress");
 });
 
@@ -225,4 +225,21 @@ test("filters are multi-select: ticking two buckets shows both", async ({ page }
   await tick(page, "sev", "Critical");
   await tick(page, "sev", "High");
   await expect(page.locator("#fld_sev .mslab")).toHaveText("2 selected");
+});
+
+test("Project owner and Product manager filters; no Net sales filter; a compact filter panel", async ({ page, isMobile }) => {
+  await open(page, DQ);
+  await expect(page.locator("#lab_owner")).toHaveText("Project owner");
+  await expect(page.locator("#lab_pm")).toHaveText("Product manager");
+  await expect(page.locator("#fNs, #fld_ns")).toHaveCount(0);
+  for (const l of await page.locator(".rail .fld > label").allTextContents()) expect(l).not.toMatch(/net sales/i);   /* rule names may mention it */
+  const shown = async () => Number((await page.locator("#inviewN").textContent()).replace(/,/g, ""));
+  const all = await page.evaluate(() => S.rows.map((p) => ({ owner: p.owner, pm: p.pm })));
+  const owner = all.map((p) => p.owner).find(Boolean), pm = all.map((p) => p.pm).find(Boolean);
+  await tick(page, "owner", owner);
+  await expect.poll(shown).toBe(all.filter((p) => p.owner === owner).length);
+  await page.click("#resetBtn");
+  await tick(page, "pm", pm);
+  await expect.poll(shown).toBe(all.filter((p) => p.pm === pm).length);
+  if (!isMobile) expect((await page.locator(".rail").boundingBox()).width).toBeLessThanOrEqual(241);   /* narrower than the Scorecard's 272px */
 });
