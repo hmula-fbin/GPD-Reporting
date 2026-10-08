@@ -1,6 +1,6 @@
 // Scorecard behaviour that the business asked for. If one of these fails, a requirement broke.
 import { test, expect } from "@playwright/test";
-import { SCORE, open, allRows, inDefaultView } from "./helpers.mjs";
+import { SCORE, open, allRows, inDefaultView, FORBIDDEN } from "./helpers.mjs";
 
 const NPD = ["Grow the Core", "Refresh & Sustain", "Create & Transform"];
 
@@ -42,6 +42,66 @@ test("no Excel buttons on Portfolio at a glance; one per table elsewhere", async
   const glance = page.locator(".shead", { hasText: "Portfolio at a glance" }).locator("xpath=..");
   await expect(glance.locator(".expbtn")).toHaveCount(0);
   expect(await page.locator(".expbtn").count()).toBeGreaterThan(2);
+});
+
+test("projects with longer execution time than forecasted have their own tab", async ({ page }) => {
+  await open(page, SCORE);
+  await expect(page.locator("#content h2", { hasText: /longer execution time than forecasted/i })).toHaveCount(0);
+  const n = await page.evaluate(() => S.last.review.length);
+  await expect(page.locator("#tabReviewN")).toHaveText(String(n));
+  await page.click("#tab_review");
+  await expect(page.locator("#tab_review")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#content h2")).toHaveText("Projects that have longer execution time than forecasted");
+  await expect(page.locator("#content .expbtn")).toHaveCount(1);
+  if (n) {
+    await page.click("#content tbody tr.drillable >> nth=0");
+    await expect(page.locator("#drTitle")).toBeVisible();
+    await page.keyboard.press("Escape");
+  }
+  await page.click("#tab_score");
+  await expect(page.locator("#content h2", { hasText: "Portfolio at a glance" })).toBeVisible();
+});
+
+test("month-over-month trend compares last month's month-end copy with today's data", async ({ page }) => {
+  await open(page, SCORE);
+  await page.waitForFunction(() => window.gpdTrendReady === true);
+  // last month comes from its month-end copy, not the mid-month one; this month is the live data.
+  // The month before is a copy named by hand ("Pipeline Data_8.31.2026.csv"), which counts too.
+  const t = await page.evaluate(async () => {
+    const d = new Date(), c = S.copies[S.copies.length - 1];
+    return { cur: monthLabel(monthKey()), last: monthLabel(monthKey(new Date(d.getFullYear(), d.getMonth() - 1, 1))),
+      before: monthLabel(monthKey(new Date(d.getFullYear(), d.getMonth() - 2, 1))),
+      day: c.capturedAt.slice(8, 10), endDay: String(new Date(d.getFullYear(), d.getMonth(), 0).getDate()),
+      lastN: snapshotMetrics(await readCopy(c)).projects, nowN: S.last.kpi.inView };
+  });
+  expect(t.day).toBe(t.endDay);
+  expect(t.lastN).not.toBe(t.nowN);
+  await page.click("#tab_trend");
+  await expect(page.locator("#tabTrendN")).toHaveText("3");
+  const rows = page.locator("#content table:has(th:text-is('Change vs prior')) tbody tr");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(2).locator("td").nth(0)).toHaveText(t.before);
+  await expect(rows.nth(0).locator("td").nth(0)).toContainText(t.cur);
+  await expect(rows.nth(0).locator("td").nth(1)).toHaveText(String(t.nowN));
+  await expect(rows.nth(1).locator("td").nth(0)).toHaveText(t.last);
+  await expect(rows.nth(1).locator("td").nth(1)).toHaveText(String(t.lastN));
+  await expect(rows.nth(0).locator("td").nth(4)).not.toHaveText("—");   // a change vs last month is shown
+  await expect(page.locator("#content .warnbar")).toHaveCount(0);       // every copy was read
+  expect(await page.locator("body").innerText()).not.toMatch(FORBIDDEN);
+});
+
+test("the date column is called Ship-Trans Date everywhere on the scorecard", async ({ page }) => {
+  await open(page, SCORE);
+  const text = await page.locator("#content").innerText();
+  expect(text).toContain("Ship-Trans Date");
+  expect(text).not.toMatch(/End date/i);
+  const rows = await allRows(page);
+  const bucket = NPD.find((b) => rows.some((r) => r.bucket === b && inDefaultView(r)));
+  await page.click("tr.drillable >> text=" + bucket);
+  await expect(page.locator("#drTable th", { hasText: "Ship-Trans Date" })).toHaveCount(1);
+  await page.click("#drTable tbody tr[data-i] >> nth=0");
+  await expect(page.locator("#drProj")).toContainText("Ship-Trans Date");
+  await expect(page.locator("#drProj")).not.toContainText(/^Finish$/m);
 });
 
 test("Download all projects gives an .xlsx", async ({ page }) => {

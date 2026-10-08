@@ -63,3 +63,11 @@ const out = path.join(ROOT, "tests/fixtures/pipeline-fixture.csv");
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, toCsv(aoa));
 console.log("wrote " + path.relative(ROOT, out) + " (" + N + " synthetic projects)");
+
+/* Last month's copy for the month-over-month trend: the same portfolio without its last 12 projects,
+   and with annualized net sales 10% lower, so every trend figure moves. */
+const NS_COL = HEADER.indexOf("Total NS (Annualized)"), first = aoa.indexOf(HEADER) + 1;
+const prev = aoa.slice(0, aoa.length - 12).map((r, i) => i < first || typeof r[NS_COL] !== "number" ? r : r.map((v, c) => c === NS_COL ? Math.round(v * 0.9) : v));
+const prevOut = path.join(ROOT, "tests/fixtures/pipeline-prev-fixture.csv");
+fs.writeFileSync(prevOut, toCsv(prev));
+console.log("wrote " + path.relative(ROOT, prevOut) + " (" + (N - 12) + " synthetic projects, last month)");

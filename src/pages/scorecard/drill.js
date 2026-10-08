@@ -57,7 +57,7 @@
         if (/NPD bucket summary/.test(h) || /Movement by bucket/.test(h)){ const s=bucketSet(name); if(s){ fn=()=>open(s); label="Show the "+s.rows.length+" projects in "+s.t; } }
         else if (/Stage funnel/.test(h)){ const track=/CI track/.test(cap)?"CI":"NPD"; const s=stageSet(track,name); fn=()=>open(s); label="Show the "+s.rows.length+" projects in "+s.t; }
         else if (/Movement by stage/.test(h)){ const s=stageSet("NPD",name); fn=()=>open(s); label="Show the projects in "+s.t; }
-        else if (/Top 10|Candidates for review/.test(h)){ const r=byName(name); if(r){ fn=()=>openProject(r,null); label="Show details for "+name; } }
+        else if (/Top 10|longer execution time than forecasted/.test(h)){ const r=byName(name); if(r){ fn=()=>openProject(r,null); label="Show details for "+name; } }
         if (fn) mark(tr, fn, label);
       });
     });
@@ -88,7 +88,7 @@
   }
   function show(){ document.body.classList.add("dr-open"); $("drPanel").setAttribute("aria-hidden","false"); setTimeout(()=>$("drClose").focus(),60); }
   function hide(){ document.body.classList.remove("dr-open"); $("drPanel").setAttribute("aria-hidden","true"); }
-  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Finish",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0],["capex","Capital Investment",0],["pdinv","PD Investment",0]];
+  const COLS=[["name","Project",1],["_st","Stage",1],["owner","Owner",1],["finish","Ship-Trans Date",0],["fc","Forecast",0],["ns","Annualized NS",0],["cm","Annualized CM",0],["capex","Capital Investment",0],["pdinv","PD Investment",0]];
   function val(r,k){ return k==="_st" ? (stageOf(r)||strip(r.stage)) : r[k]; }
   function strip(v){ return String(v||"").replace(/^[\d\s]+/,""); }
   function rows(){
@@ -127,7 +127,7 @@
     $("drStats").innerHTML=[["Annualized NS",money(r.ns)],["Annualized CM",money(r.cm)],["Incremental NS",money(r.ins)],["Investment",money(r.inv)]]
       .map(x=>'<div><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join("");
     const dl=p=>'<dl class="drdl">'+p.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1]||"\u2014")+'</dd></div>').join("")+'</dl>';
-    $("drProj").innerHTML='<h3>Timeline</h3>'+dl([["Finish",dstr(r.finish)],["Finish year",r.fy],["Status",r.status]])
+    $("drProj").innerHTML='<h3>Timeline</h3>'+dl([["Ship-Trans Date",dstr(r.finish)],["Finish year",r.fy],["Status",r.status]])
       +'<div class="drtl"><div><span>Target</span><i><b style="width:'+((r.tgt||0)/mx*100).toFixed(1)+'%"></b></i><em>'+mo2(r.tgt)+'</em></div>'
       +'<div class="'+st+'"><span>Forecast</span><i><b style="width:'+((r.fc||0)/mx*100).toFixed(1)+'%"></b></i><em>'+mo2(r.fc)+'</em></div></div>'
       +(behind?'<p class="drnote">Forecast is '+(r.fc-r.tgt).toFixed(1)+' months over target'+(r.fc>R?' and over the '+R+'-month review line':'')+'.</p>':(r.fc!=null&&r.tgt!=null?'<p class="drnote">Forecast is on or under target.</p>':''))
