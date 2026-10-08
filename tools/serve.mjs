@@ -42,7 +42,10 @@ const lastMonthNames = (name) => {
     .formatToParts(new Date()).map((x) => [x.type, x.value]));
   const end = new Date(Date.UTC(+p.year, +p.month - 1, 0)), mm = String(end.getUTCMonth() + 1).padStart(2, "0"), yy = end.getUTCFullYear();
   const dot = name.lastIndexOf("."), at = (d) => name.slice(0, dot) + " " + mm + "-" + d + "-" + yy + name.slice(dot);
-  return [[at("15"), dataFile], [at(String(end.getUTCDate())), pipelinePrev]];
+  // two months back, named the way a copy saved by hand might be: "Pipeline Data_8.31.2026.csv"
+  const end2 = new Date(Date.UTC(+p.year, +p.month - 2, 0));
+  const hand = name.slice(0, dot) + "_" + (end2.getUTCMonth() + 1) + "." + end2.getUTCDate() + "." + end2.getUTCFullYear() + name.slice(dot);
+  return [[at("15"), dataFile], [at(String(end.getUTCDate())), pipelinePrev], [hand, pipelinePrev]];
 };
 const copiesOf = (files) => [[files.project, prevFile], [files.pipeline, dataFile], [files.resource, resourceFile]]
   .flatMap(([name, f]) => name ? snapshotNames(name).map((n) => [n, f]).concat(/\.csv$/i.test(name) ? [[name.replace(/\.csv$/i, ".xlsx"), f]] : []) : [])

@@ -53,7 +53,8 @@
       if (!p) return false;
       var n = decodeURIComponent(String(p).split("/").pop()), dot = n.lastIndexOf("."), base = (dot > 0 ? n.slice(0, dot) : n).toLowerCase();
       if (low !== n.toLowerCase() && low.slice(0, low.lastIndexOf(".")) === base) return true;
-      return low.indexOf(base + " ") === 0 && /^ (\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})\.[a-z]+$/i.test(name.slice(base.length));
+      /* the same date forms the Scorecard trend accepts: 09-30-2026, 9-30-2026, 09_30_2026, 09.30.2026, 09302026, 2026-09-30 */
+      return low.indexOf(base) === 0 && /^[ _-]+(\d{1,2}[-_. ]\d{1,2}[-_. ]\d{4}|\d{4}[-_. ]\d{1,2}[-_. ]\d{1,2}|\d{8})\s*\.[a-z]+$/i.test(name.slice(base.length));
     });
   }
   function listFiles(){

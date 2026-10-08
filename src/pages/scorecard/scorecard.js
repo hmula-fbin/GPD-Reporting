@@ -315,7 +315,7 @@ function projectTable(list,valueLabel,id){
       +'<td>'+(r.ns?pct(r.cm/r.ns,1):"\u2014")+'</td>'+invCells(r)+'</tr>';
   });
   if(!list.length) body='<tr><td colspan="11" class="muted">No projects match the current filters.</td></tr>';
-  return expTable(id, '<table><thead><tr><th>Project</th><th>Bucket</th><th>End date</th><th>Exec (mo)</th>'
+  return expTable(id, '<table><thead><tr><th>Project</th><th>Bucket</th><th>Ship-Trans Date</th><th>Exec (mo)</th>'
     +'<th>'+esc(valueLabel)+'</th><th>Annualized incr NS</th><th>Annualized CM</th><th>Annualized incr CM</th><th>CM %</th><th>Capital Investment</th><th>PD Investment</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>');
 }
@@ -332,7 +332,7 @@ function reviewTable(list,threshold,id){
   if(!list.length) body='<tr><td colspan="10" class="muted">Nothing over '+threshold+' months. </td></tr>';
   const more = list.length>25 ? '<div class="fnote">Showing the 25 longest of '+list.length+' projects over the threshold.</div>' : "";
   return expTable(id, '<table><thead><tr><th>Project (longest first)</th><th>Bucket</th><th>Stage</th>'
-    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>Capital Investment</th><th>PD Investment</th><th>End date</th></tr></thead>'
+    +'<th>Forecast (mo)</th><th>Target (mo)</th><th>Over target</th><th>Annualized NS</th><th>Capital Investment</th><th>PD Investment</th><th>Ship-Trans Date</th></tr></thead>'
     +'<tbody>'+body+'</tbody></table>'+more);
 }
 
@@ -452,7 +452,7 @@ function exportView(){
 }
 /* Every project in the data, plus the ones in the current view. */
 const PROJECT_COLS = [["Project","name"],["Status","status"],["Bucket","bucket"],["Stage","stage"],["Owner","owner"],
-  ["Business unit","bu"],["Business","biz"],["Brand","brand"],["Market","mkt"],["Finish","finish"],["Finish year","fy"],
+  ["Business unit","bu"],["Business","biz"],["Brand","brand"],["Market","mkt"],["Ship-Trans Date","finish"],["Finish year","fy"],
   ["Target execution (months)","tgt"],["Forecast execution (months)","fc"],["Annualized net sales","ns"],["Annualized CM","cm"],
   ["Annualized incremental NS","ins"],["Annualized incremental CM","icm"],["Total investment (OPEX+CAPEX)","inv"],
   ["Capital Investment","capex"],["PD Investment","pdinv"]];
@@ -621,6 +621,12 @@ function trendView(histAll){
 
   if (S.trendLoading)
     h += '<div class="warnbar"><span>Recalculating earlier months against the filters\u2026</span></div>';
+  if (S.copyErr && S.copyErr.length)
+    h += '<div class="warnbar"><span><b>' + (S.copyErr[0] === "list"
+        ? 'Earlier months couldn\u2019t be loaded just now.</b> Press Refresh now to try again.'
+        : 'The month-end figures for ' + S.copyErr.map(monthLabel).map(esc).join(", ") + ' couldn\u2019t be read,</b> so '
+          + (S.copyErr.length > 1 ? 'those months are' : 'that month is') + ' left out. Contact the FBIN R&amp;D PPM team.')
+      + '</span></div>';
   if (dropped.length && !S.trendLoading){
     const lines = dropped.map(d => esc(monthLabel(d.month)) + " \u2014 " + esc(d.why));
     h += '<div class="warnbar"><span><b>'
@@ -1132,24 +1138,32 @@ async function moveSnapshot(from, to){
 }
 
 /* ---------- month-end copies ---------- */
-/* A scheduled flow saves dated copies of the pipeline file next to it, "<file name> MM-DD-YYYY.csv"
-   (YYYY-MM-DD also works). The latest copy in each past month stands for that month in the trend, and
-   the live file stands for this month, so the trend is the same for everyone from the first visit.
+/* A scheduled flow saves dated copies of the pipeline file next to it, "<file name> MM-DD-YYYY.csv".
+   Names saved by hand vary, so these all count: 09-30-2026, 9-30-2026, 09_30_2026, 09.30.2026, 09302026,
+   2026-09-30, after a space, "_" or "-". The latest copy in each past month stands for that month in the
+   trend, and the live file stands for this month, so the trend is the same for everyone from the first visit.
    A copy never changes, so its totals are cached in this browser and each copy is read once. */
 const LS_COPIES = "fbin_scorecard_monthcopies_v1", COPY_MONTHS = 24;
 const COPY_RE = (() => {
   const n = decodeURIComponent(SOURCE.file.split("/").pop()), dot = n.lastIndexOf("."), base = dot > 0 ? n.slice(0, dot) : n;
-  return new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + " (\\d{2}-\\d{2}-\\d{4}|\\d{4}-\\d{2}-\\d{2})\\.(csv|xlsx|xlsm|xls)$", "i");
+  return new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    + "[ _-]+(?:(\\d{1,2})[-_. ](\\d{1,2})[-_. ](\\d{4})|(\\d{4})[-_. ](\\d{1,2})[-_. ](\\d{1,2})|(\\d{2})(\\d{2})(\\d{4}))\\s*\\.(csv|xlsx|xlsm|xls)$", "i");
 })();
-const copyDate = s => /^\d{2}-\d{2}-\d{4}$/.test(s) ? s.slice(6)+"-"+s.slice(0,2)+"-"+s.slice(3,5) : s;   /* as YYYY-MM-DD */
+/* the date in a copy's name, as YYYY-MM-DD; null when it isn't a real date */
+function copyDate(m){
+  const p = m[1] ? [m[3], m[1], m[2]] : m[4] ? [m[4], m[5], m[6]] : [m[9], m[7], m[8]];
+  const y = +p[0], mo = +p[1], d = +p[2];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return y + "-" + String(mo).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+}
 async function listMonthCopies(){
   const r = await fetch(SOURCE.site + "/_api/web/GetFolderByServerRelativePath(decodedurl='" + spPath(GPD_CONFIG.dataFolder) + "')/Files?$select=Name,ServerRelativeUrl,TimeLastModified",
     {credentials:"include", cache:"no-store", headers:{Accept:"application/json;odata=nometadata"}});
   if (!r.ok) throw new Error("list " + r.status);
   const cur = monthKey(), best = {};
   ((await r.json()).value || []).forEach(f => {
-    const m = COPY_RE.exec(f.Name); if (!m) return;
-    const date = copyDate(m[1]), month = date.slice(0, 7), csv = /\.csv$/i.test(f.Name), o = best[month];
+    const m = COPY_RE.exec(f.Name), date = m && copyDate(m); if (!date) return;
+    const month = date.slice(0, 7), csv = /\.csv$/i.test(f.Name), o = best[month];
     if (month >= cur) return;                                   /* this month comes from the live file */
     if (!o || date > o.date || (date === o.date && csv && !o.csv)) best[month] = {month, date, csv, url:f.ServerRelativeUrl, modified:f.TimeLastModified || ""};
   });
@@ -1162,16 +1176,17 @@ async function readCopy(c){
 }
 let copyRun = 0;
 async function loadMonthCopies(){
-  const run = ++copyRun, cache = lsGet(LS_COPIES) || {}, keep = {}, out = [];
+  const run = ++copyRun, cache = lsGet(LS_COPIES) || {}, keep = {}, out = [], bad = [];
   let list;
-  try{ list = await listMonthCopies(); }catch(e){ console.warn("month copies failed", e); window.gpdTrendReady = true; return; }
+  try{ list = await listMonthCopies(); }catch(e){ console.warn("month copies failed", e); S.copyErr = ["list"]; if (S.rows.length) render(); window.gpdTrendReady = true; return; }
+  console.info("Trend: month-end copies found for", list.map(c => c.date).join(", ") || "no month");
   for (const c of list){
     const k = c.date + "|" + c.modified + "|" + DEFAULT_VIEW;
     const had = (S.copies || []).find(x => x.k === k);         /* already read this session */
     if (had){ out.push(had); keep[k] = had.m; continue; }
     let m = cache[k], rows = null;
     if (!m){
-      try{ rows = await readCopy(c); m = snapshotMetrics(rows); }catch(e){ console.warn("month copy failed", e); continue; }
+      try{ rows = await readCopy(c); m = snapshotMetrics(rows); }catch(e){ console.warn("month copy failed", c.date, e); bad.push(c.month); continue; }
       if (run !== copyRun) return;
     }
     keep[k] = m;
@@ -1179,7 +1194,7 @@ async function loadMonthCopies(){
               rowCount:rows ? rows.length : 0, chunkCount:1, rows, url:c.url, copy:true});
   }
   lsSet(LS_COPIES, keep);
-  S.copies = out;
+  S.copies = out; S.copyErr = bad;
   if (S.rows.length){ render(); prepareTrend(); }
   window.gpdTrendReady = true;
 }
