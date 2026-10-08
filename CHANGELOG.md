@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.0 - 2026-10-08
+- Data Quality Dashboard (Dev only, still "Coming soon" on Prod): new Project owner and Product manager filters, multi-select like the others.
+- Data Quality Dashboard: the "Net sales > ($)" filter is removed.
+- Data Quality Dashboard: the filter panel on the left is a little narrower and more compact, leaving more room for the table.
+
 ## v1.4.2 - 2026-10-08
 - Scorecard: "PD Investment" is now called "PD Expense", in every table, the drill-down and the Excel downloads.
 - Scorecard: the "Longer than forecasted" tab is now called "Projects > Target Duration". Home and the menu describe it the same way, and "Ask questions about your data" understands "target duration".
