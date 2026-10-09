@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.7.0 - 2026-10-09
+- Data Quality: the figures at the top are clickable. Critical, High, Medium or Low shows only the projects with that severity; Needing review and Exceptions show only projects with an issue; Projects clears these filters. A second click on the same figure shows everything again.
+- Data Quality: less empty space at the top of the page, so the figures and the table start higher.
+- Data Quality: the "Download all projects" button is removed. The Excel button above the table still downloads the projects in view.
+
 ## v1.6.0 - 2026-10-09
 - Data Quality Dashboard is now available in Production, not just Dev. It shows on Home and in the menu as a normal dashboard, no longer "Coming soon" / "Soon".
 

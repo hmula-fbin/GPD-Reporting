@@ -1,6 +1,6 @@
 {
   "name": "gpd-portfolio-hub",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "description": "GPD Portfolio Hub - SharePoint Online pages (Home + Innovation & CI Portfolio Scorecard)",
   "type": "module",
