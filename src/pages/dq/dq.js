@@ -391,13 +391,20 @@ function stats(){
 }
 function renderKpis(){
   const st = stats(), total = S.P.reduce((t, p) => t + p.n, 0);
-  const kb = (k, v, sub, cls) => '<div class="kb' + (cls || "") + '"><div class="k">' + k + '</div><div class="v">' + v + (sub ? "<small>" + sub + "</small>" : "") + '</div></div>';
-  const bits = filterBits();
-  $("kpis").innerHTML = kb("Projects", fmtN(st.n), "of " + fmtN(S.P.length))
-    + kb("Needing review", fmtN(st.flagged), st.n ? Math.round(st.flagged / st.n * 100) + "%" : "")
-    + kb("Exceptions", fmtN(st.exc), "of " + fmtN(total))
-    + kb("Critical", fmtN(st.sev[0]), "", " sev c") + kb("High", fmtN(st.sev[1]), "", " sev h")
-    + kb("Medium", fmtN(st.sev[2]), "", " sev m") + kb("Low", fmtN(st.sev[3]), "", " sev l")
+  /* a tile with an action (data-kpi) filters the table when clicked; clicking it again clears that filter */
+  const kb = (k, v, sub, cls, act, on, tip) => (act
+      ? '<button type="button" class="kb kbtn' + (cls || "") + (on ? " on" : "") + '" data-kpi="' + act + '" aria-pressed="' + !!on + '" title="' + esc(tip) + '">'
+      : '<div class="kb' + (cls || "") + '">')
+    + '<div class="k">' + k + '</div><div class="v">' + v + (sub ? "<small>" + sub + "</small>" : "") + '</div>' + (act ? '</button>' : '</div>');
+  const bits = filterBits(), one = S.f.sev.length === 1 ? S.f.sev[0] : null, flagged = S.scope === "flagged";
+  const sevTile = (i, cls) => kb(SEVS[i], fmtN(st.sev[i]), "", " sev " + cls, "sev" + i, one === String(i),
+    one === String(i) ? "Show every severity again" : "Show only projects with a " + SEVS[i].toLowerCase() + " issue");
+  $("kpis").innerHTML = kb("Projects", fmtN(st.n), "of " + fmtN(S.P.length), "", "all", false, "Show all projects (clear the severity and flagged filters)")
+    + kb("Needing review", fmtN(st.flagged), st.n ? Math.round(st.flagged / st.n * 100) + "%" : "", "", "flagged", flagged,
+         flagged ? "Show all projects again" : "Show only projects with at least one issue")
+    + kb("Exceptions", fmtN(st.exc), "of " + fmtN(total), "", "flagged", flagged,
+         flagged ? "Show all projects again" : "Show only projects with at least one issue")
+    + sevTile(0, "c") + sevTile(1, "h") + sevTile(2, "m") + sevTile(3, "l")
     + kb("Net sales", big(st.ns), "")
     + '<div class="kctx">' + esc(bits.length ? bits.join(" · ") : "Full portfolio · no filters applied") + '</div>';
 }
@@ -744,7 +751,6 @@ function filterSheet(){
     ["Medium", st.sev[2]], ["Low", st.sev[3]], [], ["Last refreshed", S.loadedAt ? S.loadedAt.toLocaleString("en-US") : ""],
     ["Rule set", "v2.1 — 21 checks"], ["Downloaded", new Date().toLocaleString("en-US")]]};
 }
-function exportAll(){ saveXlsx("Data_Quality_All_Projects_" + todayKey() + ".xlsx", projectSheets(S.P)); }
 function exportView(){ saveXlsx("Data_Quality_Dashboard_" + todayKey() + ".xlsx", projectSheets(S.rows)); }
 function exportLog(){
   const rows = [["Date", "Projects", "Projects needing review", "Open exceptions", "Change vs previous", "Critical", "High", "Medium", "Low"]];
@@ -859,7 +865,6 @@ $("tab_check").onclick = () => setTab("check");
 $("tab_track").onclick = () => setTab("track");
 $("reloadBtn").onclick = () => reloadData();
 $("notesBtn").onclick = () => { if (S.P.length) openNotes(); };
-$("dlAllBtn").onclick = () => { if (S.P.length){ exportAll(); flash($("dlAllBtn"), '<svg class="xl" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#1D6F42"/></svg><span>Downloaded</span>'); } };
 $("xlGridBtn").onclick = () => { if (S.P.length){ exportView(); flash($("xlGridBtn"), DL_ICON + "Downloaded"); } };
 $("xlLogBtn").onclick = () => { exportLog(); flash($("xlLogBtn"), DL_ICON + "Downloaded"); };
 $("xlCmpBtn").onclick = () => { exportCompare(); flash($("xlCmpBtn"), DL_ICON + "Downloaded"); };
@@ -867,6 +872,17 @@ $("hlBtn").onclick = () => { S.hl = !S.hl; $("hlBtn").setAttribute("aria-pressed
 $("finBtn").onclick = () => { S.fin = !S.fin; $("finBtn").setAttribute("aria-pressed", String(S.fin)); $("finBtn").textContent = S.fin ? "Financials on" : "Financials off"; renderHead(); drawRows(false); };
 let qt; $("fQ").oninput = () => { clearTimeout(qt); qt = setTimeout(() => { S.q = $("fQ").value.trim().toLowerCase(); refresh(); }, 140); };
 $("fScope").onchange = () => { S.scope = $("fScope").value; refresh(); };
+/* KPI tiles: Critical / High / Medium / Low set the Severity filter to that level; Needing review and Exceptions
+   show flagged projects only; Projects clears both. Clicking a selected tile again clears its filter. */
+$("kpis").addEventListener("click", e => {
+  const b = e.target.closest("[data-kpi]"); if (!b) return;
+  const a = b.dataset.kpi;
+  if (a === "all"){ S.f.sev = []; S.scope = "all"; }
+  else if (a === "flagged") S.scope = S.scope === "flagged" ? "all" : "flagged";
+  else { const v = a.slice(3); S.f.sev = S.f.sev.length === 1 && S.f.sev[0] === v ? [] : [v]; }
+  $("fScope").value = S.scope;
+  refresh();
+});
 $("resetBtn").onclick = () => {
   if (!S.P.length) return;
   S.f = defaults(); S.q = ""; S.scope = "all"; S.sort = "n"; S.dir = -1;

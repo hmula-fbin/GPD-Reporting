@@ -131,9 +131,11 @@ test("KPI figures use one colour (no red / amber / green)", async ({ page }) => 
   for (const v of cols.vals) expect(v).toBe(rgb);
 });
 
-test("Excel downloads: the grid, Download all projects, and the daily tracking", async ({ page }) => {
+test("Excel downloads: the grid and the daily tracking; no Download all projects button", async ({ page }) => {
   await open(page, DQ);
-  for (const sel of ["#xlGridBtn", "#dlAllBtn"]) {
+  await expect(page.locator("#dlAllBtn")).toHaveCount(0);
+  await expect(page.locator(".masthead")).not.toContainText(/download all/i);
+  for (const sel of ["#xlGridBtn"]) {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click(sel)]);
     expect(dl.suggestedFilename()).toMatch(/.xlsx$/);
   }
@@ -242,4 +244,35 @@ test("Project owner and Product manager filters; no Net sales filter; a compact 
   await tick(page, "pm", pm);
   await expect.poll(shown).toBe(all.filter((p) => p.pm === pm).length);
   if (!isMobile) expect((await page.locator(".rail").boundingBox()).width).toBeLessThanOrEqual(241);   /* narrower than the Scorecard's 272px */
+});
+
+test("the header is compact: less empty space above the figures than on the Scorecard", async ({ page, isMobile }) => {
+  test.skip(isMobile, "measured on desktop");
+  await open(page, DQ);
+  expect((await page.locator(".masthead").boundingBox()).height).toBeLessThanOrEqual(110);
+});
+
+test("clicking a KPI filters the table: Critical shows only critical projects, a second click clears it", async ({ page }) => {
+  await open(page, DQ);
+  const shown = async () => Number((await page.locator("#inviewN").textContent()).replace(/,/g, ""));
+  const before = await shown();
+  const crit = await page.evaluate(() => S.rows.filter((p) => p.ex.some((e) => e.sev === 0)).length);
+  expect(crit).toBeGreaterThan(0);
+  await page.click('#kpis [data-kpi="sev0"]');
+  await expect.poll(shown).toBe(crit);
+  expect(await page.evaluate(() => S.rows.every((p) => p.ex.some((e) => e.sev === 0)))).toBe(true);
+  await expect(page.locator('#kpis [data-kpi="sev0"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#fld_sev .mslab")).toHaveText("Critical");          // the left panel says so too
+  await page.click('#kpis [data-kpi="sev0"]');
+  await expect.poll(shown).toBe(before);
+  await expect(page.locator('#kpis [data-kpi="sev0"]')).toHaveAttribute("aria-pressed", "false");
+  // Needing review: flagged projects only; Projects clears every KPI filter
+  await page.click('#kpis [data-kpi="sev1"]');
+  await page.click('#kpis [data-kpi="flagged"] >> nth=0');
+  await expect(page.locator("#fScope")).toHaveValue("flagged");
+  expect(await page.evaluate(() => S.rows.every((p) => p.n > 0))).toBe(true);
+  await page.click('#kpis [data-kpi="all"]');
+  await expect.poll(shown).toBe(before);
+  await expect(page.locator("#fScope")).toHaveValue("all");
+  await expect(page.locator("#kpis .kb", { hasText: "Net sales" }).locator("xpath=self::button")).toHaveCount(0);   // nothing to list
 });

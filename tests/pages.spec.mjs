@@ -82,6 +82,7 @@ for (const [name, url, sel] of [["Scorecard", SCORE, "#content .tblwrap table"],
   test(name + ": table columns can be resized, are remembered, and double-click resets them", async ({ page, isMobile }) => {
     test.skip(isMobile, "drag-to-resize is a mouse action");
     await open(page, url);
+    if (url === SCORE) await page.waitForFunction(() => window.gpdTrendReady === true);   /* the Scorecard redraws once last month is in: drag after that */
     const th = page.locator(sel).first().locator("thead th").nth(1);
     const before = (await th.boundingBox()).width;
     const g = (await th.locator(".colgrip").boundingBox());
