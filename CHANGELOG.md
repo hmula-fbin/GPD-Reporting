@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.0 - 2026-10-09
+- Data Quality Dashboard is now available in Production, not just Dev. It shows on Home and in the menu as a normal dashboard, no longer "Coming soon" / "Soon".
+
 ## v1.5.0 - 2026-10-08
 - Data Quality Dashboard (Dev only, still "Coming soon" on Prod): new Project owner and Product manager filters, multi-select like the others.
 - Data Quality Dashboard: the "Net sales > ($)" filter is removed.
