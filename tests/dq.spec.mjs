@@ -190,17 +190,17 @@ test("notes explain every rule", async ({ page }) => {
   await expect(page.locator("#notesDlg")).toBeHidden();
 });
 
-test("Prod: Data Quality is switched off: no page, Coming soon on Home and Soon in the menu", async ({ page }) => {
+test("Prod: Data Quality is released, matching Dev: page present, linked on Home and in the menu", async ({ page }) => {
   const fs = await import("node:fs");
   const files = JSON.parse(fs.readFileSync("dist/prod/manifest.json", "utf8")).files.map((f) => f.name);
-  expect(files).toEqual(["Home.aspx", "Portfolio_Scorecard.aspx"]);
-  expect(fs.existsSync("dist/prod/Data_Quality.aspx")).toBe(false);
+  expect(files).toEqual(["Home.aspx", "Portfolio_Scorecard.aspx", "Data_Quality.aspx"]);
+  expect(fs.existsSync("dist/prod/Data_Quality.aspx")).toBe(true);
   await page.setContent(fs.readFileSync("dist/prod/Home.aspx", "ascii"));
-  await expect(page.locator("#dqSoon")).toContainText("Coming soon");
-  await expect(page.locator("#dqSoon h3")).toHaveText("Data Quality");
-  await expect(page.locator('a[href$="Data_Quality.aspx"]')).toHaveCount(0);
+  await expect(page.locator("#dqSoon")).toHaveCount(0);
+  await expect(page.locator('a.card[href$="Data_Quality.aspx"]')).toBeVisible();
   await page.click("#navBtn");
-  await expect(page.locator("#navDrawer .navitem.off", { hasText: "Data Quality" })).toContainText("Soon");
+  await expect(page.locator('#navDrawer a.navitem[href$="Data_Quality.aspx"]')).toBeVisible();
+  await expect(page.locator("#navDrawer .navitem.off", { hasText: "Data Quality" })).toHaveCount(0);
 });
 
 test("Home has a Data Quality tile and the menu lists the page", async ({ page }) => {
