@@ -1,0 +1,50 @@
+/* ===================== Upcoming Launches page (on top of the scorecard styles) ===================== */
+.ulview{margin-top:18px}
+.ulview[hidden]{display:none}
+.ulhead{margin:0 0 9px}
+.ulhead .act{display:flex;gap:6px;align-items:center}
+.ulcard{background:var(--panel);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow)}
+.ulfoot{font-size:11.5px;color:var(--ink-3);margin:12px 0 0;line-height:1.55}
+
+/* ---- header: as compact as Data Quality's ---- */
+.masthead .wrap,.masthead .wrap:first-child{padding-top:12px;padding-bottom:10px}
+.mast-title h1{font-size:23px}
+.mast-title p{margin-top:3px}
+
+/* ---- left panel ---- */
+.fld.ms .msbtn{width:100%;max-width:none}
+.rail .msopt.zero .msname,.rail .msopt.zero .mscount{opacity:.4}
+.fld.active select,.fld.active input{background-color:color-mix(in srgb,var(--kpi) 9%,var(--panel));border-color:var(--kpi);color:var(--kpi);font-weight:600}
+.inview small{display:block;font-size:11px;color:var(--ink-3);margin-top:1px}
+@media (min-width:1100px){
+  .layout{grid-template-columns:240px minmax(0,1fr)}
+  .rail .wrap{gap:9px;padding:14px 14px 22px}
+  .rail .fld{gap:1px}
+  .rail .fld label{font-size:10.5px}
+  .rail .msbtn{padding:5px 8px;font-size:12px}
+  .rail .fld select,.rail .fld input:not([type=checkbox]){width:100%;max-width:none;padding:5px 8px;font-size:12px}
+  .rail .inview{padding:8px 10px}
+  .rail #resetBtn{align-self:stretch;justify-content:center}
+}
+@media (max-width:1099px){
+  .rail{position:static}
+  .rail .fld{flex:1 1 150px}
+  .rail .fld select,.rail .fld input:not([type=checkbox]){width:100%;max-width:none}
+}
+
+/* ---- the table ---- */
+.gridwrap{overflow:auto;max-height:calc(100vh - 250px);min-height:440px;border-radius:10px 10px 0 0}
+table.lt{border-collapse:separate;border-spacing:0;font-size:12.5px;width:max-content;min-width:100%;background:var(--panel)}
+table.lt thead th{position:sticky;top:0;z-index:4;background:var(--panel-2);color:var(--ink-2);font-size:11.5px;font-weight:600;text-align:left;
+  padding:9px 12px;white-space:nowrap;cursor:grab;user-select:none;border-bottom:1px solid var(--rule);touch-action:pan-y}
+table.lt thead th:hover{color:var(--kpi)}
+table.lt thead th .ar{font-size:8px;margin-left:4px;color:var(--kpi)}
+table.lt thead th.dragging{opacity:.4}
+table.lt td{padding:0 12px;height:30px;border-bottom:1px solid var(--rule-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px;text-align:left}
+table.lt td.d{font-variant-numeric:tabular-nums}
+table.lt tbody tr:hover td{background:var(--panel-2)}
+.norows{padding:34px;text-align:center;color:var(--ink-3)}
+body.reordering,body.reordering table.lt thead th{cursor:grabbing;user-select:none}
+.dropline{position:fixed;width:3px;background:var(--kpi);z-index:50;pointer-events:none;border-radius:2px}
+.dragghost{position:fixed;z-index:55;pointer-events:none;padding:6px 12px;background:var(--kpi);color:var(--panel);border-radius:6px;font-size:12px;font-weight:600;
+  box-shadow:var(--shadow);opacity:.93;white-space:nowrap}

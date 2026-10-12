@@ -1,8 +1,8 @@
 // Both pages: load cleanly, greet the viewer, navigate, theme, and never reveal where the data comes from.
 import { test, expect } from "@playwright/test";
-import { HOME, SCORE, DQ, FORBIDDEN, open } from "./helpers.mjs";
+import { HOME, SCORE, DQ, LAUNCH, FORBIDDEN, open } from "./helpers.mjs";
 
-for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE], ["Data Quality", DQ]]) {
+for (const [name, url] of [["Home", HOME], ["Scorecard", SCORE], ["Data Quality", DQ], ["Upcoming Launches", LAUNCH]]) {
   test.describe(name, () => {
     test("loads with no script errors and no horizontal scroll", async ({ page }) => {
       const errors = await open(page, url);

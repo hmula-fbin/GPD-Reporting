@@ -175,5 +175,14 @@
   new MutationObserver(function(){ if (queued) return; queued = true; requestAnimationFrame(function(){ queued = false; scan(); }); })
     .observe(document.body, {childList:true, subtree:true});
   scan();
-  window.gpdTables = { reset: function(){ saved = {}; store(); Array.prototype.forEach.call(document.querySelectorAll("table.rz-fixed"), auto); } };
+  /* reset() forgets every saved size; resetPage() only this page's column widths and table boxes */
+  window.gpdTables = {
+    reset: function(){ saved = {}; store(); Array.prototype.forEach.call(document.querySelectorAll("table.rz-fixed"), auto); },
+    resetPage: function(){
+      Object.keys(saved).forEach(function(k){ if (k.indexOf(page + "|") === 0 || k.indexOf("box|" + page + "|") === 0) delete saved[k]; });
+      store();
+      Array.prototype.forEach.call(document.querySelectorAll("table.rz-fixed"), auto);
+      boxes.forEach(function(w){ w.style.width = ""; w.style.height = ""; w.style.maxHeight = ""; place(w); });
+    }
+  };
 })();

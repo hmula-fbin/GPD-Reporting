@@ -1,7 +1,7 @@
 # GPD Portfolio Hub - notes for Claude Code
 
-Three SharePoint Online pages (Home.aspx, Portfolio_Scorecard.aspx, Data_Quality.aspx) built from the modular source in `src/`.
-Each page reads its data live in the browser through the SharePoint REST API, as the person viewing: Home and the Scorecard read the pipeline file; Data Quality reads the project file and the resource file.
+Four SharePoint Online pages (Home.aspx, Portfolio_Scorecard.aspx, Data_Quality.aspx, Upcoming_Launches.aspx) built from the modular source in `src/`.
+Each page reads its data live in the browser through the SharePoint REST API, as the person viewing: Home and the Scorecard read the pipeline file; Data Quality reads the project file and the resource file; Upcoming Launches reads the project file.
 
 ## Who you're working with
 Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
@@ -31,7 +31,7 @@ The full process is in docs/TEAM-GUIDE.md.
 6. **Excel downloads**: one per table, plus "Download all projects" at the top of the Scorecard (Data Quality has none: its grid's Excel button downloads the projects in view). No Excel buttons on the scorecard's "Portfolio at a glance".
 7. **Filters sit in the left panel.** Drill-down works on bucket, stage, KPI and project rows. Hovering a Project Bucket shows the reference sheet from `config/bucket-reference.json`.
 8. **Home greeting**: time of day plus first name ("Good afternoon, Harinath"). No jokes or humour text. Home stays clean: no glance panel, intro sentence or hero button. (The exception is the Scorecard and Data Quality loading screens, which do show light time-of-day lines while data loads: `src/shared/loading.js`.)
-9. Portfolio Explorer is shelved and appears as "Soon" in the menu. Data Quality is not released to Prod yet: `"dataQuality": false` in `config/prod.json` leaves Data_Quality.aspx out of the Prod build and shows it as Coming soon on Home and Soon in the menu. Set it to true (or remove it) when the page is ready for Prod.
+9. Portfolio Explorer is shelved and appears as "Soon" in the menu. Data Quality is released to Prod (`"dataQuality": true` in `config/prod.json`). Upcoming Launches is not released to Prod yet: `"upcomingLaunches": false` in `config/prod.json` leaves Upcoming_Launches.aspx out of the Prod build and shows it as Coming soon on Home and Soon in the menu. Set it to true (or remove it) when the page is ready for Prod. Setting either switch to false hides that page the same way.
 10. **Scorecard header** shows "Last refreshed <date, time>" only (not "data updated" or "loaded").
 
 ## SharePoint constraints (the build enforces these)
@@ -55,6 +55,7 @@ The full process is in docs/TEAM-GUIDE.md.
 | Resizable table columns on every page (drag a heading edge; double-click resets) | `src/shared/tables.js` |
 | Responsive layout: breakpoints in `src/shared/shell.css`; filters fold into a "Filters" button below 1100px | `src/shared/responsive.js` |
 | Data Quality: column names, thresholds, the 21 rules, filters, exports, daily tracking | `src/pages/dq/dq.js` (+ `dq.html`, `dq.css`) |
+| Upcoming Launches: column names (`LCOLS`), the 6-month window, the 12 filters and their defaults, column drag-to-move, Excel | `src/pages/launches/launches.js` (+ `launches.html`, `launches.css`) |
 | Build | `build/build.mjs` |
 | Local preview server | `tools/serve.mjs` |
 | Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.csv`; `tools/make-dq-fixture.mjs` -> `tests/fixtures/dq-*-fixture.csv` (one project per rule) |
@@ -66,8 +67,9 @@ The full process is in docs/TEAM-GUIDE.md.
 - The parser finds a sheet named PIPELINE (or one whose header row has "Project Name" and "Project Bucket (NEW)"). The header row is found within the first 30 rows.
 - The columns used are in `FIELD_MAP` in `scorecard.js`. Every Scorecard table also shows Capital Investment and Product Development Investment (labelled "PD Expense"). Home has its own small parser in `home.js`; keep the two consistent.
 - NPD = Grow the Core + Refresh & Sustain + Create & Transform. CI and CRQ are reported separately.
-- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months), `fbin_scorecard_monthcopies_v1` (Scorecard trend: totals of each month-end copy, so each is read once), `fbin_dq_snapcache_v1` (Data Quality: totals of each nightly snapshot, so each is read once), `fbin_tablesizes_v2` (each person's table and column sizes), `fbin_copilot_terms` (terms each person taught the Copilot, e.g. "PMF means Project Management Flag").
+- localStorage keys: `fbin_theme`, `gpd_nav_seen`, `fbin_scorecard_data_v2`, `fbin_scorecard_snaps_v2` (monthly trend snapshots, 24 months), `fbin_scorecard_monthcopies_v1` (Scorecard trend: totals of each month-end copy, so each is read once), `fbin_dq_snapcache_v1` (Data Quality: totals of each nightly snapshot, so each is read once), `fbin_tablesizes_v2` (each person's table and column sizes), `fbin_launch_cols_v1` (each person's Upcoming Launches column order), `fbin_copilot_terms` (terms each person taught the Copilot, e.g. "PMF means Project Management Flag").
 - Data Quality filters are all multi-select. Status sits above Phase there (the Scorecard keeps Phase above Status).
+- Upcoming Launches reads the project file too: every project whose "Ship-Trans Date" is from today to six months from today. It opens on In Progress, the Active Phase and the brands Moen, ROHL, RIOBEL and Perrin & Rowe (those present). Project Manager / Project owner is ProjectOwnerName; Distribution Channel is DistributionChannel. A missing column leaves its values blank and the page says so.
 - Data Quality reads `projectFileName` and `resourceFileName` from `config/<env>.json`. Column names are in `PROJECT_COLS` / `RESOURCE_COLS` at the top of `dq.js`; a rule whose column is missing switches itself off and the page says so. Project Type comes from "Stage Gate Project Type" (ProjectType is blank in the extract).
 - The Scorecard's month-over-month trend reads the dated copies of the pipeline file (`Pipeline Data MM-DD-YYYY.csv`, YYYY-MM-DD also works): the latest copy in each past month stands for that month (up to 24), and the live file is this month. A month with no copy falls back to the snapshot the browser stored.
 - Data Quality daily tracking reads the daily copies `<project file> MM-DD-YYYY.csv` (YYYY-MM-DD also works) that a Power Automate flow saves in the data library (docs/DAILY-SNAPSHOT.md): one row per copy plus Now, and the live file compared with the latest-dated copy. There is no Record now button. The Copilot ignores those copies.
