@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { prodGateProblem } from "./lib/release.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -24,12 +25,9 @@ const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, "config", env + ".json"),
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 
 if (env === "prod") {
-  const branch = sh("git rev-parse --abbrev-ref HEAD"), dirty = sh("git status --porcelain"), tags = sh("git tag --points-at HEAD").split(/\s+/);
-  const me = sh("git config user.email");
-  if (cfg.releaseOwners && cfg.releaseOwners.length && !cfg.releaseOwners.includes(me)) stop("Only release owners package Prod (" + cfg.releaseOwners.join(", ") + "). You are '" + me + "'.");
-  if (branch !== "main") stop("Prod pages come from the main branch. You are on '" + branch + "'. Run /approve-release first.");
-  if (dirty) stop("You have uncommitted changes. Commit them (or ask Claude) first.");
-  if (!tags.includes("v" + pkg.version)) stop("This commit is not tagged v" + pkg.version + ". Run /approve-release first.");
+  const problem = prodGateProblem({ cfg, version: pkg.version, branch: sh("git rev-parse --abbrev-ref HEAD"),
+    dirty: sh("git status --porcelain"), tags: sh("git tag --points-at HEAD").split(/\s+/), me: sh("git config user.email") });
+  if (problem) stop(problem);
 }
 
 if (!args.includes("--skip-tests")) {

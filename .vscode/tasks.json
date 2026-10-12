@@ -69,6 +69,16 @@
       }
     },
     {
+      "label": "Release: send for approval (release owner)",
+      "type": "shell",
+      "command": "node tools/send-for-approval.mjs",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true
+      }
+    },
+    {
       "label": "Deploy: dev (automatic, needs PnP app)",
       "type": "shell",
       "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env dev",
