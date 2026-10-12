@@ -1,11 +1,11 @@
 {
-  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod releases need the main branch, a clean tree and a version tag, and anyone on the team may send one; it goes live only when the approver clicks Approve in the release flow (docs/PROD-APPROVAL-FLOW.md). dataQuality true = the Data Quality page is released here (it used to show Coming soon on Home and Soon in the menu before this). upcomingLaunches false = the Upcoming Launches page is not released here yet (Coming soon on Home and in the menu).",
+  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod releases need the main branch, a clean tree and a version tag, and anyone on the team may send one; it goes live only when the approver clicks Approve in the release flow (docs/PROD-APPROVAL-FLOW.md). dataQuality true = the Data Quality page is released here (it used to show Coming soon on Home and Soon in the menu before this). upcomingLaunches true = the Upcoming Launches page is released here (it used to show Coming soon on Home and Soon in the menu before this).",
   "env": "prod",
   "label": "Production",
   "sitePath": "/sites/GPDReporting",
   "showEnvBadge": false,
   "dataQuality": true,
-  "upcomingLaunches": false,
+  "upcomingLaunches": true,
   "tenantUrl": "https://fbinportal.sharepoint.com",
   "pagesLibrary": "Report Pages",
   "dataLibrary": "Report Files",

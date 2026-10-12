@@ -115,13 +115,14 @@ test("Home has an Upcoming Launches tile and the menu lists the page", async ({ 
   await expect(page.locator('#navDrawer a[href$="Upcoming_Launches.aspx"]')).toBeVisible();
 });
 
-test("Prod: Upcoming Launches is switched off: no page, Coming soon on Home and Soon in the menu", async ({ page }) => {
+test("Prod: Upcoming Launches is released, matching Dev: page present, linked on Home and in the menu", async ({ page }) => {
   const files = JSON.parse(fs.readFileSync("dist/prod/manifest.json", "utf8")).files.map((f) => f.name);
-  expect(files).not.toContain("Upcoming_Launches.aspx");
-  expect(fs.existsSync("dist/prod/Upcoming_Launches.aspx")).toBe(false);
+  expect(files).toContain("Upcoming_Launches.aspx");
+  expect(fs.existsSync("dist/prod/Upcoming_Launches.aspx")).toBe(true);
   await page.setContent(fs.readFileSync("dist/prod/Home.aspx", "ascii"));
-  await expect(page.locator("#launchSoon")).toContainText("Coming soon");
-  await expect(page.locator('a[href$="Upcoming_Launches.aspx"]')).toHaveCount(0);
+  await expect(page.locator("#launchSoon")).toHaveCount(0);
+  await expect(page.locator('a.card[href$="Upcoming_Launches.aspx"]')).toBeVisible();
   await page.click("#navBtn");
-  await expect(page.locator("#navDrawer .navitem.off", { hasText: "Upcoming Launches" })).toContainText("Soon");
+  await expect(page.locator('#navDrawer a.navitem[href$="Upcoming_Launches.aspx"]')).toBeVisible();
+  await expect(page.locator("#navDrawer .navitem.off", { hasText: "Upcoming Launches" })).toHaveCount(0);
 });
