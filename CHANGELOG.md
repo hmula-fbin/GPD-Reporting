@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.2 - 2026-10-12
+- No change to the pages. New release process: after /approve-release, the release goes to QA and the approvers get an Approve/Reject request by email and in Teams. Prod is updated only when one of them approves; on Reject the sender gets their comments by email.
+- Anyone on the team can now release (no single release owner). Approvers are the people in the Approvers list on the Prod site.
+- Custom scripts are switched on automatically: by the release flow when it needs them, and every day at 6 AM Eastern for the GPD sites (Power Automate flows, imported from npm run flows).
+- Every released page is kept in Prod Release Backup with the date and time added; each release is logged in the GPD Releases list.
+
 ## v1.8.1 - 2026-10-12
 - Upcoming Launches: the Project Description column shows each project's Project Scope Statement (it was blank). A project with no scope statement shows its description, if it has one.
 
