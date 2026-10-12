@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.8.1 - 2026-10-12
+- Upcoming Launches: the Project Description column shows each project's Project Scope Statement (it was blank). A project with no scope statement shows its description, if it has one.
+
 ## v1.8.0 - 2026-10-12
 - New dashboard: Upcoming Launches (Dev and QA; "Coming soon" on Production until it is switched on there). It lists every project with a Ship-Trans Date in the next six months, with Project Number, Name, Ship-Trans Date, Month of Launch, Description, Project Manager, Project Type, Current Stage, Brand, Distribution Channel and Primary Customer.
 - Upcoming Launches opens on In Progress, the Active Phase and the Moen, ROHL, RIOBEL and Perrin & Rowe brands. Twelve filters on the left show how many projects each value would give; Reset goes back to the default view.
