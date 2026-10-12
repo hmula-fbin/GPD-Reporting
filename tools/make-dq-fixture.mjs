@@ -109,7 +109,7 @@ function addProject(name, kind, over, live, into = rows) {
   /* Upcoming Launches: Ship-Trans Dates spread one or two a month over 2026-2030, so any six-month window holds some */
   set("Ship-Trans Date", new Date(2026, (id * 7) % 60, 1 + (id % 27))); set("DistributionChannel", ["Retail", "Wholesale", "E-Commerce, Retail"][id % 3]);
   set("Customer", ["Lowes", "Home Depot", null][id % 3]); set("Executing Organization", ["GPD Americas", "GPD Asia"][id % 2]);
-  set("Room", ["Kitchen Only", "Bath Only", null][id % 3]); set("ProjectDescription", "Synthetic test project " + id + ".");
+  set("Room", ["Kitchen Only", "Bath Only", null][id % 3]); set("Project Scope Statement", "Scope statement for test project " + id + ".");   /* ProjectDescription stays blank, as in the real extract */
   into.push(r);
 }
 for (const [name, kind, over] of TESTS) addProject(name, kind, over, true);

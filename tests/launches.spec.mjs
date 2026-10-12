@@ -46,6 +46,7 @@ test("the table has the eleven columns, dates as MM/DD/YYYY and the month of lau
   const row = page.locator("#gridBody tr").first().locator("td");
   await expect(row.nth(2)).toHaveText(/^\d\d\/\d\d\/\d{4}$/);
   await expect(row.nth(3)).toHaveText(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/);
+  await expect(row.nth(4)).toHaveText(/^Scope statement for test project \d+\.$/);   // Project Description, from the Project Scope Statement
   await expect(row.nth(9)).toHaveText(/^(Retail|Wholesale|E-Commerce, Retail)$/);   // Distribution Channel, from the DistributionChannel field
   await expect(row.nth(7)).not.toHaveText(/^\d/);                         // stage without its "03 02" code
 });
