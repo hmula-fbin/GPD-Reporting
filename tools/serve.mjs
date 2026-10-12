@@ -102,5 +102,6 @@ http.createServer((req, res) => {
   console.log("  Home       http://localhost:" + port + pagesUrl + "Home.aspx");
   console.log("  Scorecard  http://localhost:" + port + pagesUrl + "Portfolio_Scorecard.aspx");
   console.log("  Quality    http://localhost:" + port + pagesUrl + "Data_Quality.aspx");
+  console.log("  Launches   http://localhost:" + port + pagesUrl + "Upcoming_Launches.aspx");
   console.log("  Data       " + path.relative(ROOT, dataFile) + "   (Ctrl+C to stop)");
 });

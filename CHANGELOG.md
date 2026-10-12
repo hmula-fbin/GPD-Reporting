@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.0 - 2026-10-12
+- New dashboard: Upcoming Launches (Dev and QA; "Coming soon" on Production until it is switched on there). It lists every project with a Ship-Trans Date in the next six months, with Project Number, Name, Ship-Trans Date, Month of Launch, Description, Project Manager, Project Type, Current Stage, Brand, Distribution Channel and Primary Customer.
+- Upcoming Launches opens on In Progress, the Active Phase and the Moen, ROHL, RIOBEL and Perrin & Rowe brands. Twelve filters on the left show how many projects each value would give; Reset goes back to the default view.
+- Upcoming Launches: click a heading to sort, drag a heading to move the column, drag its edge to resize; each person's layout is remembered and Reset layout restores it. The Excel button downloads the projects in view.
+- Home has an Upcoming Launches tile and the menu lists the page.
+
 ## v1.7.0 - 2026-10-09
 - Data Quality: the figures at the top are clickable. Critical, High, Medium or Low shows only the projects with that severity; Needing review and Exceptions show only projects with an issue; Projects clears these filters. A second click on the same figure shows everything again.
 - Data Quality: less empty space at the top of the page, so the figures and the table start higher.

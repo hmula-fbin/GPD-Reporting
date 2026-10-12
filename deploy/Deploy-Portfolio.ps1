@@ -10,7 +10,7 @@
   3. Runs the tests (unless -SkipTests) and builds dist/<env>/ (unless -SkipBuild).
   4. Signs in to SharePoint as you (PnP.PowerShell, interactive browser sign-in).
   5. Backs up the pages currently on the site to backups/<env>/<timestamp>/.
-  6. Uploads Home.aspx, Portfolio_Scorecard.aspx and Data_Quality.aspx to the pages library and checks the sizes.
+  6. Uploads the pages this environment gets (Home, Scorecard, and Data Quality and Upcoming Launches unless switched off) and checks the sizes.
   7. Writes a line to deploy/deployments.log.
 
 .EXAMPLE
@@ -46,7 +46,10 @@ $version = $pkg.version
 if ($cfg.sitePath -match 'CHANGE-ME') { Fail "config/$Env.json still has a CHANGE-ME site path. Put the real site in first." }
 if (-not $cfg.pnpClientId) { Fail "config/$Env.json has no pnpClientId. Run ./deploy/Setup-PnPApp.ps1 once (see docs/RELEASE.md)." }
 $siteUrl = $cfg.tenantUrl.TrimEnd('/') + $cfg.sitePath
-$pages = @('Home.aspx', 'Portfolio_Scorecard.aspx', 'Data_Quality.aspx')
+# the pages this environment gets: a page switched off in config ("dataQuality": false, "upcomingLaunches": false) is left out
+$pages = @('Home.aspx', 'Portfolio_Scorecard.aspx')
+if ($cfg.dataQuality -ne $false) { $pages += 'Data_Quality.aspx' }
+if ($cfg.upcomingLaunches -ne $false) { $pages += 'Upcoming_Launches.aspx' }
 $logFile = Join-Path $PSScriptRoot 'deployments.log'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $commit = (git rev-parse --short=8 HEAD 2>$null)
