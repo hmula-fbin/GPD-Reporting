@@ -1,17 +1,10 @@
-/* Sending a release for approval: the Prod gates, the changelog lines for a version, and the request file the
-   Power Automate release flow reads (docs/PROD-APPROVAL-FLOW.md). The flow uploads what this request lists, so
-   everything it needs (site, upload address, sizes, the approval and email texts) is worked out here, where the
-   tests can check it, instead of in hand-typed flow expressions. */
+/* Preparing a Prod release for the release flow (docs/PROD-APPROVAL-FLOW.md): the checks, the changelog lines for
+   a version, and staging the pages in OneDrive's GPD Releases, a shortcut to Prod Release Files/GPD Releases. */
 import fs from "node:fs";
 import path from "node:path";
 
-const TITLES = { "Home.aspx": "Home", "Portfolio_Scorecard.aspx": "Portfolio Scorecard", "Data_Quality.aspx": "Data Quality" };
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-/* Why this commit can't go to Prod yet, or "" when it can. */
-export function prodGateProblem({ cfg, version, branch, dirty, tags, me }) {
-  if (cfg.releaseOwners && cfg.releaseOwners.length && !cfg.releaseOwners.includes(me))
-    return "Only release owners can release to Prod (" + cfg.releaseOwners.join(", ") + "). You are '" + me + "'.";
+/* Why this commit can't go to Prod yet, or "" when it can. Anyone on the team may release. */
+export function prodGateProblem({ version, branch, dirty, tags }) {
   if (branch !== "main") return "Prod pages come from the main branch. You are on '" + branch + "'. Run /approve-release first.";
   if (dirty) return "You have uncommitted changes. Commit them (or ask Claude) first.";
   if (!tags.includes("v" + version)) return "This commit is not tagged v" + version + ". Run /approve-release first.";
@@ -29,70 +22,34 @@ export function changesFor(changelog, version) {
   return out.join("\n");
 }
 
-/* One environment's half of the request: where its pages go and where the flow finds them in OneDrive. */
-function side(env, { cfg, manifest }, folder) {
-  const base = cfg.tenantUrl.replace(/\/$/, "");
-  const lib = manifest.pagesUrl.replace(/\/$/, "");                  /* /sites/X/Report%20Pages */
-  return {
-    label: cfg.label,
-    siteUrl: base + cfg.sitePath,
-    stamp: manifest.version + " " + manifest.commit + " " + manifest.env,
-    files: manifest.files.map((f) => ({
-      name: f.name,
-      title: TITLES[f.name] || f.name,
-      bytes: f.bytes,
-      source: folder + "/" + env + "/" + f.name + ".txt",
-      uploadUri: "_api/web/GetFolderByServerRelativeUrl('" + lib + "')/Files/add(url='" + f.name + "',overwrite=true)",
-      url: base + lib + "/" + f.name,
-    })),
-  };
+/* The OneDrive shortcut to Prod Release Files/GPD Releases. OneDrive names a shortcut "<site> - <folder>"
+   ("GPDReporting - GPD Releases"); someone may have renamed it to plain "GPD Releases". Returns its path, or "". */
+export function findReleaseFolder(oneDrive) {
+  let names = [];
+  try { names = fs.readdirSync(oneDrive).filter((n) => { try { return fs.statSync(path.join(oneDrive, n)).isDirectory(); } catch { return false; } }); } catch { /* no OneDrive */ }
+  const hit = names.find((n) => / - GPD Releases$/.test(n)) || names.find((n) => n === "GPD Releases");
+  return hit ? path.join(oneDrive, hit) : "";
 }
 
-/* The request file. `folder` is the OneDrive path the flow reads the pages from, e.g. "/GPD Releases/v1.8.0-...".
-   The Approve button and the emails go to the release owner who sent it (submittedBy). */
-export function buildRequest({ id, version, commit, submittedBy, submitted, changes, folder, dev, prod }) {
-  const d = side("dev", dev, folder), p = side("prod", prod, folder);
-  const app = "GPD Portfolio Hub v" + version;
-  const links = (s) => s.files.map((f) => '<li><a href="' + esc(f.url) + '">' + esc(f.title) + "</a></li>").join("");
-  const bullets = changes ? "<ul>" + changes.split("\n").map((l) => "<li>" + esc(l.replace(/^[-*]\s*/, "")) + "</li>").join("") + "</ul>" : "";
-  return {
-    id, app: "GPD Portfolio Hub", version, commit, submittedBy, submitted,
-    approvers: submittedBy,
-    notify: submittedBy,
-    approvalTitle: "Release " + app + " to Prod",
-    approvalDetails: [
-      app + " is on the Dev site now. Have a look, then choose **Approve** to publish it to Prod, or **Reject** with a comment.",
-      "",
-      "**What changed**",
-      changes || "- (no changelog entry)",
-      "",
-      "**Open it on Dev**",
-      ...d.files.map((f) => "- [" + f.title + "](" + f.url + ")"),
-    ].join("\n"),
-    devHomeUrl: d.files[0].url,
-    doneSubject: app + " is live on Prod",
-    doneHtml: "<p>" + esc(app) + " is live on Prod.</p><ul>" + links(p) + "</ul>" + bullets
-      + "<p>To undo: in the library, select ... next to a page, then Version history, then Restore the previous version.</p>",
-    rejectedSubject: app + " was not approved",
-    rejectedHtml: "<p>" + esc(app) + " was rejected, so Prod was not changed. It is still on Dev.</p>",
-    failedSubject: app + " release stopped",
-    failedHtml: "<p>The release flow for " + esc(app) + " stopped at a step that failed. Nothing after that step ran.</p>"
-      + "<p>Open the flow's run history in Power Automate to see which step, then see \"If something goes wrong\" in docs/PROD-APPROVAL-FLOW.md.</p>",
-    dev: d,
-    prod: p,
-  };
-}
+/* A release id that is safe in folder names and URLs, e.g. v1.8.0-abcd1234-20261012-1530. A rehearsal id starts with
+   "rehearsal-" instead of "v", and the release flow's trigger only accepts ids starting with "v", so a rehearsal can
+   never start a release. */
+export const releaseId = (version, commit, when, { rehearsal = false } = {}) =>
+  (rehearsal ? "rehearsal-" : "") + "v" + version + "-" + commit + "-" + when.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 13);
 
-/* Copies the pages into <dropDir>/<id>/<env>/<page>.txt, then writes <dropDir>/<id>.json LAST: the json is what
-   starts the flow, so the pages are already on their way to OneDrive when it does. (.txt because OneDrive refuses
-   .aspx files.) Returns the json path. */
-export function stageRelease({ dropDir, request, dists }) {
-  for (const env of ["prod", "dev"]) {
-    const dir = path.join(dropDir, request.id, env);
+/* Copies the pages into <root>/prod/<id>/ and <root>/qa/<id>/ as <page>.aspx.txt. The .txt lets OneDrive and SharePoint
+   take them while custom scripts are off; the release flow renames them to .aspx. The <id> folder name tells the flow
+   where to look. Returns what Claude needs to check they arrived and start the flow. */
+export function stageRelease({ root, id, version, commit, changes, prodDist, qaDist }) {
+  const side = (env, dist) => {
+    const dir = path.join(root, env, id);
+    fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
-    for (const f of request[env].files) fs.copyFileSync(path.join(dists[env], f.name), path.join(dir, f.name + ".txt"));
-  }
-  const file = path.join(dropDir, request.id + ".json");
-  fs.writeFileSync(file, JSON.stringify(request, null, 2) + "\n");
-  return file;
+    const files = JSON.parse(fs.readFileSync(path.join(dist, "manifest.json"), "utf8")).files.map((f) => {
+      fs.copyFileSync(path.join(dist, f.name), path.join(dir, f.name + ".txt"));
+      return { name: f.name, staged: f.name + ".txt", bytes: f.bytes };
+    });
+    return { folder: env + "/" + id, files, bytes: files.reduce((n, f) => n + f.bytes, 0) };
+  };
+  return { id, title: "v" + version, version, commit, whatChanged: changes || "v" + version, prod: side("prod", prodDist), qa: side("qa", qaDist) };
 }

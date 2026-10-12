@@ -1,5 +1,5 @@
 ---
-description: (Release owner) Approve a change tested on Dev and prepare it for Prod
+description: Approve a change tested on Dev and prepare it for Prod (anyone on the team)
 ---
 Prepare a release from the approved change branch: $ARGUMENTS
 (If no branch was given, list the change branches with `git branch -r` and ask which ones were approved on Dev.)
@@ -11,9 +11,5 @@ Prepare a release from the approved change branch: $ARGUMENTS
 5. Add a CHANGELOG.md entry at the top for the new version (today's date, plain-English bullets of what users will notice).
 6. `git commit -am "Release v<version>"` and `git tag -a v<version> -m "Release v<version>"`.
 7. If there is an `origin`, run `git push origin main --follow-tags`.
-8. Tell the release owner the next step: /send-for-approval. The release flow puts this exact release on Dev, sends them an Approve button (email and Teams), and on Approve publishes it to Prod by itself, custom scripts included (docs/PROD-APPROVAL-FLOW.md).
-   If the flow isn't set up yet, or isn't working, use the manual route, which they run themselves:
-   a) /package-dev, then drag all three page files into the Dev library. This puts this exact release on Dev; take a quick look;
-   b) /package-prod, then drag all three page files into the Prod library (custom scripts must be on that day).
-   If the automatic deploy is set up (pnpClientId filled in), the tasks "Deploy: dev" and "Deploy: prod" do the uploads instead.
-Never run the prod deploy yourself.
+8. Carry straight on with the /package-prod steps (.claude/commands/package-prod.md): build, stage in OneDrive (synced to Prod Release Files/GPD Releases), check the files arrived and add the release to the GPD Releases list. That starts the release flow, which puts it on QA, emails the approver and, on Approve, publishes to Prod (docs/PROD-APPROVAL-FLOW.md). Finish with the plain-words summary from its step 6.
+Never run the prod deploy yourself: Prod changes only when the approver clicks Approve.

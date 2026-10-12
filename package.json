@@ -18,7 +18,7 @@
     "deploy:test": "pwsh -NoProfile -ExecutionPolicy Bypass -File deploy/Deploy-Portfolio.ps1 -Env test",
     "package:dev": "node tools/package.mjs --env dev",
     "package:prod": "node tools/package.mjs --env prod",
-    "release:send": "node tools/send-for-approval.mjs"
+    "flows": "node tools/make-flow-packages.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0"

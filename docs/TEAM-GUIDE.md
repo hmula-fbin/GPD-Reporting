@@ -12,18 +12,19 @@ This guide assumes you have never used VS Code, git or Claude Code before.
 ## The big picture
 
 ```
- Requester            Team member (VS Code + Claude)            Release owner
+ Requester            Team member (VS Code + Claude)            Approver
  "change X"  ───────▶ 1. ask Claude to make the change
                       2. preview it on own PC
                       3. share it + put it on DEV  ───────────▶ (Dev site)
  tests on Dev ◀──────  sends Dev link
    │  not OK → back to step 1 (same change)
-   └─ OK ─────────────────────────────────────────────────────▶ 4. approve the change
-                                                                5. deploy to PROD
+   └─ OK ─────────▶ 4. approve the change, build it, run the
+                      release flow (QA first) ──────────────▶ 5. Approve in the email
+                                                                 → live on PROD
 ```
 
 - **Dev site**: where changes are tried out. Anyone on the team can deploy to it. Today this is `/sites/gpdsbx`.
-- **Prod site**: what everyone uses. Only the release owner (Harinath) can deploy to it, and only a version that is already live on Dev.
+- **Prod site**: what everyone uses. Anyone on the team can send a release, through the release flow. It goes live only when the approver clicks **Approve** in the email.
 - **Shared copy**: one folder in OneDrive holds the team's shared project history. Everyone works in their own copy on their own PC (`C:\dev\gpd-portfolio-hub`) and sends changes to and from the shared copy. You don't move these files around yourself; Claude does it when you type `/share-change` or `/get-latest`.
 
 ### Do I need to create a Project in Claude?
@@ -40,13 +41,14 @@ Requesters who only test on Dev need nothing but a browser.
 |---|---|
 | Requester (tests on Dev) | Read access to the Dev site |
 | Team member | A Claude seat with Claude Code, VS Code, the OneDrive shared folder (Can edit), and Edit on the Dev site's `Shared Documents` |
-| Release owner | All of the above, plus Edit on the Prod site, and being listed in `releaseOwners` in `config/prod.json` |
+| Sending a release (any team member) | All of the above, plus Edit on **Prod Release Files** and on the **GPD Releases** list (Prod site), the **GPD Releases** folder added to their OneDrive (Prod Release Files, select GPD Releases, **Add shortcut to My files**), and the WorkIQ-SharePoint connector connected in Claude |
+| Approver | Listed in the **Approvers** list on the Prod site, and Read access to the QA site. They approve from the email or Teams |
 
 Everyone who opens the pages also needs Read on the `Report Files` library of that site.
 
 ---
 
-## Part A: release owner setup (once)
+## Part A: first-time setup (once, by one person)
 
 **A1. Install the tools.**
 
@@ -154,44 +156,34 @@ Type these into the **Claude panel** (Spark icon). Text in *italics* is an examp
 | 8 | Build the Dev pages | `/package-dev`, or **Run Task… → Upload: package Dev pages**. It runs the tests, builds the pages, and opens both the folder and the Dev library |
 | 9 | Upload them to Dev | Check custom scripts are on today. Drag `Home.aspx`, `Portfolio_Scorecard.aspx` and `Data_Quality.aspx` into the library and choose **Replace**. Open each link to check. Claude writes the Teams message for the requester |
 | 10a | Requester says it needs changes | Go back to step 3. You are still on the same change |
-| 10b | Requester says OK | Message the release owner: *"change/greeting-wording is approved on Dev"* |
+| 10b | Requester says OK | Tell the team: *"change/greeting-wording is approved on Dev"*. Anyone can then release it (Part D) |
 
 Notes:
 
 - The preview uses made-up sample data, so the numbers are not real. To preview with a real extract, put the file in the project's `data` folder and run the task **Preview (dev, real extract in data/)**. That folder is never shared.
-- Claude will not deploy to Prod, force-push or delete work. It asks before it commits or pushes. Uploading to SharePoint is always done by you.
+- Claude will not deploy to Prod, force-push or delete work. It asks before it commits or pushes. Dev uploads are done by you. For Prod, Claude only hands the release to the release flow, and the approver decides.
 - If you get lost, ask Claude in plain words: *"What state is my project in? What should I do next?"*
 
 ---
 
-## Part D: releasing to Prod (release owner)
+## Part D: releasing to Prod (anyone on the team)
 
-Once the release flow is set up ([PROD-APPROVAL-FLOW.md](PROD-APPROVAL-FLOW.md)), it's two commands and one click:
+One command. Claude and the release flow do the rest: QA, custom scripts, the approval email and Prod. How it works and how it's built: [PROD-APPROVAL-FLOW.md](PROD-APPROVAL-FLOW.md).
 
-| # | Do | How |
+| # | Who | What happens |
 |---|---|---|
-| 1 | Get the approved change into the main version | `/approve-release change/greeting-wording` (as below) |
-| 2 | Send it for approval | `/send-for-approval`, or **Run Task… → Release: send for approval (release owner)**. Within about 5 minutes the release is on Dev and you have an Approve button, by email and in Teams |
-| 3 | Click **Approve** | The flow turns custom scripts on for Prod, uploads the three pages (adds missing ones, replaces the rest), checks them and emails you. On **Reject**, Prod isn't touched |
-| 4 | Smoke test on Prod | Open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
+| 1 | You | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, tags and shares it. Then it builds the QA and Prod pages, hands them to SharePoint and adds the release to the **GPD Releases** list. Approve the commands when Claude asks |
+| 2 | The flow | Within a few minutes: switches custom scripts on, puts the release on QA and emails the approver what changed, with a link to QA |
+| 3 | Approver | **Approve**: the pages replace the ones in Report Pages, are kept in Prod Release Backup with the date, and you get "live on Prod". **Reject**: you get the approver's comments by email |
+| 4 | You | Smoke test on Prod: open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
 
-The manual route below still works, for example while the flow is being set up:
-
-| # | Do | How |
-|---|---|---|
-| 1 | Get the approved change into the main version | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, and saves it |
-| 2 | Put that exact release on Dev | `/package-dev`, then drag all three page files into the Dev library and have a quick look |
-| 3 | Build the Prod pages | `/package-prod`, or **Run Task… → Upload: package Prod pages (release owner)**. It refuses unless you're the release owner, on the main version, with everything saved and tagged, and the tests pass |
-| 4 | Upload to Prod | Check custom scripts are on today for the Prod site. Drag all three page files into the Prod library and choose **Replace** |
-| 5 | Smoke test on Prod | Open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
+To follow a release, open the **GPD Releases** list on the Prod site and look at its Status. To re-send one (for example after the flow stopped), ask Claude for `/package-prod`.
 
 **To undo a release:**
 
-1. In the SharePoint library, click **…** next to the file and choose **Version history**.
+1. In Report Pages, click **…** next to the file and choose **Version history**.
 2. Restore the previous version.
-3. Do this for each page file.
-
-Every build also writes `UPLOAD-STEPS.txt` next to the pages, with the exact links.
+3. Do this for each page file. The released files are also kept in Prod Release Backup.
 
 ---
 
@@ -211,7 +203,7 @@ Every build also writes `UPLOAD-STEPS.txt` next to the pages, with the exact lin
 When GitHub access arrives:
 
 1. Create an empty **private** repository, for example `gpd-portfolio-hub`, with no README.
-2. Release owner, tell Claude: *"Switch our shared copy to https://github.com/<org>/gpd-portfolio-hub.git and push all branches and tags."* Claude runs:
+2. One person tells Claude: *"Switch our shared copy to https://github.com/<org>/gpd-portfolio-hub.git and push all branches and tags."* Claude runs:
    ```powershell
    git remote set-url origin https://github.com/<org>/gpd-portfolio-hub.git
    git push -u origin --all
@@ -220,7 +212,7 @@ When GitHub access arrives:
 3. Everyone else tells Claude: *"Switch origin to https://github.com/<org>/gpd-portfolio-hub.git and get the latest."*
 4. Retire the OneDrive folder once everyone has switched, and make it read-only first.
 
-After the move, "approved" becomes a **pull request** on GitHub. The requester or release owner clicks *Approve*, and GitHub can run the tests automatically. Ask Claude to set that up when you get there.
+After the move, "approved" becomes a **pull request** on GitHub. The requester or a teammate clicks *Approve*, and GitHub can run the tests automatically. Ask Claude to set that up when you get there.
 
 ---
 

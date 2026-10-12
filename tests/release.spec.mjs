@@ -1,34 +1,26 @@
-// Sending a release for approval: the Prod gates, the changelog lines, and the request file the release flow reads.
+// Preparing a Prod release for the release flow: the checks, the changelog lines, and staging the pages.
 // Plain Node checks (no browser), so they run once, in the desktop project.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test, expect } from "@playwright/test";
-import { prodGateProblem, changesFor, buildRequest, stageRelease } from "../tools/lib/release.mjs";
+import { prodGateProblem, changesFor, findReleaseFolder, releaseId, stageRelease } from "../tools/lib/release.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const json = (...p) => JSON.parse(fs.readFileSync(path.join(ROOT, ...p), "utf8"));
-const prodCfg = json("config", "prod.json"), devCfg = json("config", "dev.json");
-const devManifest = json("dist", "dev", "manifest.json"), prodManifest = json("dist", "prod", "manifest.json");
+const dist = (env) => path.join(ROOT, "dist", env);
+const pages = (env) => JSON.parse(fs.readFileSync(path.join(dist(env), "manifest.json"), "utf8")).files.map((f) => f.name);
 
-const request = (over = {}) => buildRequest({
-  id: "v9.9.9-abcd1234-20261012-153000", version: "9.9.9", commit: "abcd1234", submittedBy: "owner@moen.com",
-  submitted: "2026-10-12T15:30:00.000Z", changes: "- Scorecard: one thing.\n- Home: <another> & more.",
-  folder: "/GPD Releases/v9.9.9-abcd1234-20261012-153000",
-  dev: { cfg: devCfg, manifest: devManifest }, prod: { cfg: prodCfg, manifest: prodManifest }, ...over,
-});
-
-test.describe("Send for approval", () => {
+test.describe("Prod release", () => {
   test.beforeEach(() => test.skip(test.info().project.name !== "desktop-light", "Node-only checks run once"));
 
-  test("Prod gates: release owner, main, committed, tagged", () => {
-    const ok = { cfg: { releaseOwners: ["owner@moen.com"] }, version: "1.2.3", branch: "main", dirty: "", tags: ["v1.2.3"], me: "owner@moen.com" };
+  test("anyone may release, from a committed, tagged main", () => {
+    const ok = { version: "1.2.3", branch: "main", dirty: "", tags: ["v1.2.3"] };
     expect(prodGateProblem(ok)).toBe("");
-    expect(prodGateProblem({ ...ok, me: "someone@moen.com" })).toMatch(/release owners/);
     expect(prodGateProblem({ ...ok, branch: "change/x" })).toMatch(/main branch/);
     expect(prodGateProblem({ ...ok, dirty: " M src/x.js" })).toMatch(/uncommitted/);
     expect(prodGateProblem({ ...ok, tags: ["v1.2.2"] })).toMatch(/not tagged v1\.2\.3/);
+    expect(JSON.parse(fs.readFileSync(path.join(ROOT, "config", "prod.json"), "utf8")).releaseOwners).toBeUndefined();
   });
 
   test("takes the changelog lines of exactly this version", () => {
@@ -38,53 +30,52 @@ test.describe("Send for approval", () => {
     expect(changesFor(log, "2.0.0")).toBe("");
   });
 
-  test("request lists every built page with its upload address, size and OneDrive source", () => {
-    const r = request();
-    for (const [env, cfg, man] of [["dev", devCfg, devManifest], ["prod", prodCfg, prodManifest]]) {
-      expect(r[env].siteUrl).toBe(cfg.tenantUrl + cfg.sitePath);
-      expect(r[env].files.map((f) => f.name)).toEqual(man.files.map((f) => f.name));
-      expect(r[env].files.map((f) => f.bytes)).toEqual(man.files.map((f) => f.bytes));
-      expect(r[env].stamp).toBe(man.version + " " + man.commit + " " + env);
-      const lib = cfg.sitePath + "/" + encodeURI(cfg.pagesLibrary);
-      for (const f of r[env].files) {
-        expect(f.uploadUri).toBe("_api/web/GetFolderByServerRelativeUrl('" + lib + "')/Files/add(url='" + f.name + "',overwrite=true)");
-        expect(f.url).toBe(cfg.tenantUrl + lib + "/" + f.name);
-        expect(f.source).toBe("/GPD Releases/v9.9.9-abcd1234-20261012-153000/" + env + "/" + f.name + ".txt");
-      }
-    }
-    expect(r.prod.siteUrl).toBe("https://fbinportal.sharepoint.com/sites/GPDReporting");
-    expect(r.prod.files.map((f) => f.name)).toContain("Home.aspx");
-    expect(r.devHomeUrl).toBe(r.dev.files.find((f) => f.name === "Home.aspx").url);
-  });
-
-  test("request carries the approval and email texts; the Approve button goes to whoever sent it", () => {
-    const r = request();
-    expect(r.approvers).toBe("owner@moen.com");
-    expect(r.notify).toBe("owner@moen.com");
-    expect(r.approvalTitle).toBe("Release GPD Portfolio Hub v9.9.9 to Prod");
-    expect(r.approvalDetails).toContain("- Scorecard: one thing.");
-    for (const f of r.dev.files) expect(r.approvalDetails).toContain("(" + f.url + ")");
-    for (const f of r.prod.files) expect(r.doneHtml).toContain('href="' + f.url + '"');
-    expect(r.doneHtml).toContain("<li>Home: &lt;another&gt; &amp; more.</li>");
-    expect(r.doneSubject).toBe("GPD Portfolio Hub v9.9.9 is live on Prod");
-    expect(r.rejectedSubject + r.failedSubject).toMatch(/not approved.*stopped/);
-  });
-
-  test("stages the pages as .txt and writes the request file last", () => {
-    const dropDir = fs.mkdtempSync(path.join(os.tmpdir(), "gpd-release-"));
+  test("finds the GPD Releases shortcut under the name OneDrive gives it", () => {
+    const od = fs.mkdtempSync(path.join(os.tmpdir(), "gpd-onedrive-"));
     try {
-      const r = request();
-      const file = stageRelease({ dropDir, request: r, dists: { dev: path.join(ROOT, "dist", "dev"), prod: path.join(ROOT, "dist", "prod") } });
-      expect(path.basename(file)).toBe(r.id + ".json");
-      expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual(r);
-      const jsonTime = fs.statSync(file).mtimeMs;
-      for (const env of ["dev", "prod"]) for (const f of r[env].files) {
-        const staged = path.join(dropDir, r.id, env, f.name + ".txt");
-        expect(fs.readFileSync(staged).equals(fs.readFileSync(path.join(ROOT, "dist", env, f.name)))).toBe(true);
-        expect(fs.statSync(staged).size).toBe(f.bytes);
-        expect(fs.statSync(staged).mtimeMs).toBeLessThanOrEqual(jsonTime);
+      expect(findReleaseFolder(od)).toBe("");
+      fs.writeFileSync(path.join(od, "GPD Releases notes.txt"), "a file, not the folder");
+      fs.mkdirSync(path.join(od, "GPD Support"));
+      expect(findReleaseFolder(od)).toBe("");
+      fs.mkdirSync(path.join(od, "GPD Releases"));
+      expect(findReleaseFolder(od)).toBe(path.join(od, "GPD Releases"));
+      fs.mkdirSync(path.join(od, "GPDReporting - GPD Releases"));
+      expect(findReleaseFolder(od)).toBe(path.join(od, "GPDReporting - GPD Releases"));
+      expect(findReleaseFolder(path.join(od, "missing"))).toBe("");
+    } finally { fs.rmSync(od, { recursive: true, force: true }); }
+  });
+
+  test("release id is safe in folder names and URLs; a rehearsal id can never start the flow", () => {
+    const when = new Date("2026-10-12T15:30:45Z");
+    expect(releaseId("1.8.0", "abcd1234", when)).toBe("v1.8.0-abcd1234-20261012-1530");
+    const rehearsal = releaseId("1.8.0", "abcd1234", when, { rehearsal: true });
+    expect(rehearsal).toBe("rehearsal-v1.8.0-abcd1234-20261012-1530");
+    expect(rehearsal.startsWith("v")).toBe(false);   /* the flow's trigger condition: startsWith(ReleaseId, 'v') */
+  });
+
+  test("stages Prod pages in prod/<id> and QA pages in qa/<id>, as .aspx.txt", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "gpd-release-"));
+    const id = "v9.9.9-abcd1234-20261012-1530";
+    try {
+      fs.mkdirSync(path.join(root, "prod", id), { recursive: true });
+      fs.writeFileSync(path.join(root, "prod", id, "Old_Page.aspx.txt"), "left from an earlier try");
+      const r = stageRelease({ root, id, version: "9.9.9", commit: "abcd1234", changes: "- one\n- two", prodDist: dist("prod"), qaDist: dist("test") });
+      expect(r).toMatchObject({ id, title: "v9.9.9", version: "9.9.9", commit: "abcd1234", whatChanged: "- one\n- two" });
+      expect(r.prod.folder).toBe("prod/" + id);
+      expect(r.qa.folder).toBe("qa/" + id);
+      expect(pages("prod")).toContain("Home.aspx");
+      for (const [env, dir, site] of [["prod", "prod", "/sites/GPDReporting\""], ["qa", "test", "/sites/GPDReportingQA\""]]) {
+        expect(fs.readdirSync(path.join(root, env, id)).sort()).toEqual(pages(dir).map((p) => p + ".txt").sort());
+        expect(r[env].files.map((f) => f.name)).toEqual(pages(dir));
+        for (const f of r[env].files) {
+          const staged = fs.readFileSync(path.join(root, env, id, f.staged), "utf8");
+          expect(staged).toBe(fs.readFileSync(path.join(dist(dir), f.name), "utf8"));
+          expect(staged).toContain('"sitePath": "' + site);
+          expect(Buffer.byteLength(staged)).toBe(f.bytes);
+        }
+        expect(r[env].bytes).toBe(r[env].files.reduce((n, f) => n + f.bytes, 0));
       }
-      expect(fs.readdirSync(dropDir).sort()).toEqual([r.id, r.id + ".json"]);
-    } finally { fs.rmSync(dropDir, { recursive: true, force: true }); }
+      expect(stageRelease({ root, id, version: "9.9.9", commit: "abcd1234", changes: "", prodDist: dist("prod"), qaDist: dist("test") }).whatChanged).toBe("v9.9.9");
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 });

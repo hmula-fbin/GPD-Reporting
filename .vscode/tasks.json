@@ -59,19 +59,9 @@
       }
     },
     {
-      "label": "Upload: package Prod pages (release owner)",
+      "label": "Release: build and stage QA + Prod pages in OneDrive",
       "type": "shell",
       "command": "node tools/package.mjs --env prod",
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "focus": true
-      }
-    },
-    {
-      "label": "Release: send for approval (release owner)",
-      "type": "shell",
-      "command": "node tools/send-for-approval.mjs",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

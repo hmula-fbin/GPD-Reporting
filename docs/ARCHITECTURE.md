@@ -56,7 +56,7 @@ Script order matters. Scripts are plain classic scripts that share globals: `S`,
 | Site | `/sites/gpdsbx` (current sandbox) | your test site | your production site |
 | Data | a copy of the extract (seed with `-UploadData`) | a copy of the extract | the real file, maintained by its owners |
 | Badge | DEV | TEST | none |
-| Who deploys | any developer | developer, after tests pass | release owner, after Test sign-off |
+| Who deploys | any developer | the release flow, before approval | the release flow, when the approver clicks Approve |
 
 Each site needs:
 
