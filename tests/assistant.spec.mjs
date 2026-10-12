@@ -118,8 +118,7 @@ test("Copilot understands abbreviations and loosely named columns, and learns ne
   expect(a.html).toContain(PROJ.find((r) => r.ProjectID === 7001).ProjectName);
   expect(a.html).toContain("DC First Ship 1 Date");
   a = await ask(page, "what is the ship date for project 7001");
-  expect(a.html).toContain("DC First Ship 1 Date");
-  expect(a.html).toContain("DC First Ship 2 Date");
+  expect(a.html).toContain("Ship-Trans Date");          // the column most like "ship date" (the DC First Ship dates are asked by name above)
   a = await ask(page, "XQV means NPV");
   expect(a.html).toContain("Got it");
   a = await ask(page, "top 3 projects by XQV");
