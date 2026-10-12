@@ -195,7 +195,7 @@ test("notes explain every rule", async ({ page }) => {
 test("Prod: Data Quality is released, matching Dev: page present, linked on Home and in the menu", async ({ page }) => {
   const fs = await import("node:fs");
   const files = JSON.parse(fs.readFileSync("dist/prod/manifest.json", "utf8")).files.map((f) => f.name);
-  expect(files).toEqual(["Home.aspx", "Portfolio_Scorecard.aspx", "Data_Quality.aspx"]);
+  expect(files).toEqual(["Home.aspx", "Portfolio_Scorecard.aspx", "Data_Quality.aspx", "Upcoming_Launches.aspx"]);
   expect(fs.existsSync("dist/prod/Data_Quality.aspx")).toBe(true);
   await page.setContent(fs.readFileSync("dist/prod/Home.aspx", "ascii"));
   await expect(page.locator("#dqSoon")).toHaveCount(0);
