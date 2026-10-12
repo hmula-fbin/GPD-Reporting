@@ -16,7 +16,15 @@ The step-by-step version, with exact Claude commands, is in [TEAM-GUIDE.md](TEAM
   2. Set `"promoteFrom": "test"` in `config/prod.json`.
   3. Deploy to Test with `npm run deploy:test` before Prod.
 
-## Manual upload (the current way)
+## Approval flow (one click on Approve)
+`/send-for-approval` (`node tools/send-for-approval.mjs`) has the same gates as Prod packaging. It runs the tests, builds Dev and Prod, and copies the pages into the release owner's OneDrive folder `GPD Releases`, with a request file written last. That file starts the Power Automate flow "GPD - release to Prod", which:
+1. puts the pages on Dev;
+2. sends the release owner who sent it an Approve/Reject request (Outlook and Teams);
+3. on Approve, turns custom scripts on for Prod with the admin connection, uploads the pages with `overwrite=true` (missing pages are added, existing ones replaced), checks every size, turns custom scripts off again and emails the release owner.
+
+Prod is always the same build that was just put on Dev. How to build the flow, and what to do when it fails: [PROD-APPROVAL-FLOW.md](PROD-APPROVAL-FLOW.md).
+
+## Manual upload (fallback)
 `node tools/package.mjs --env dev|prod` (or `/package-dev`, `/package-prod`) runs the tests, builds the pages, writes `UPLOAD-STEPS.txt`, and opens the folder and the library. Prod packaging has the same gates as the automatic deploy, except the live Dev check: confirm that yourself. Undo with the library's Version history.
 
 ## Release (release owner, automatic deploy)

@@ -166,6 +166,17 @@ Notes:
 
 ## Part D: releasing to Prod (release owner)
 
+Once the release flow is set up ([PROD-APPROVAL-FLOW.md](PROD-APPROVAL-FLOW.md)), it's two commands and one click:
+
+| # | Do | How |
+|---|---|---|
+| 1 | Get the approved change into the main version | `/approve-release change/greeting-wording` (as below) |
+| 2 | Send it for approval | `/send-for-approval`, or **Run Task… → Release: send for approval (release owner)**. Within about 5 minutes the release is on Dev and you have an Approve button, by email and in Teams |
+| 3 | Click **Approve** | The flow turns custom scripts on for Prod, uploads the three pages (adds missing ones, replaces the rest), checks them and emails you. On **Reject**, Prod isn't touched |
+| 4 | Smoke test on Prod | Open Home and the Scorecard, press **Refresh now**, and ask one question. Then tell the team |
+
+The manual route below still works, for example while the flow is being set up:
+
 | # | Do | How |
 |---|---|---|
 | 1 | Get the approved change into the main version | `/approve-release change/greeting-wording`. Claude merges it, runs the tests, asks if it's a fix or a feature, updates the version and changelog, and saves it |

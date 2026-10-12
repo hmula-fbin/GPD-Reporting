@@ -17,10 +17,5 @@
   "promoteFrom": "dev",
   "releaseOwners": [
     "harinath.mula@moen.com"
-  ],
-  "_releaseNote": "releaseApprovers get the Approve button (email + Teams) from the release flow; on Approve it publishes to Prod. releaseDropFolder is the folder in the release owner's OneDrive that starts the flow. See docs/PROD-APPROVAL-FLOW.md.",
-  "releaseApprovers": [
-    "CHANGE-ME@moen.com"
-  ],
-  "releaseDropFolder": "GPD Releases"
+  ]
 }

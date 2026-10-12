@@ -6,9 +6,9 @@ Each page reads its data live in the browser through the SharePoint REST API, as
 ## Who you're working with
 Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
 - `/get-latest`, `/start-change`, `/change`, `/share-change` and `/package-dev`, for everyone;
-- `/approve-release`, `/package-prod` and `/release-check`, for the release owner.
+- `/approve-release`, `/send-for-approval`, `/package-prod` and `/release-check`, for the release owner.
 
-Uploading to SharePoint is manual for now: `tools/package.mjs` builds the pages and the user drags them into the library. Custom scripts must be on for the site that day, because SharePoint resets them every 24 hours. `/deploy-dev` (PnP) is only for when `pnpClientId` is set.
+Prod releases go through the approval flow: `/send-for-approval` (`tools/send-for-approval.mjs`) stages the built pages in the release owner's OneDrive. A Power Automate flow then puts them on Dev and sends the release owner an Approve button (email and Teams). On Approve, it switches custom scripts on with an admin connection and uploads to Prod (docs/PROD-APPROVAL-FLOW.md). Never ask for or handle the admin password. The fallback is manual: `tools/package.mjs` builds the pages and the user drags them into the library. Custom scripts must be on for the site that day, because SharePoint resets them every 24 hours. `/deploy-dev` (PnP) is only for when `pnpClientId` is set.
 
 The full process is in docs/TEAM-GUIDE.md.
 
@@ -59,6 +59,7 @@ The full process is in docs/TEAM-GUIDE.md.
 | Local preview server | `tools/serve.mjs` |
 | Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.csv`; `tools/make-dq-fixture.mjs` -> `tests/fixtures/dq-*-fixture.csv` (one project per rule) |
 | Deploy | `deploy/Deploy-Portfolio.ps1` (PnP.PowerShell). Prod checks the build stamp live on Dev |
+| Prod approval flow: send a release, the request file, and how to build the flow | `tools/send-for-approval.mjs`, `tools/lib/release.mjs` (tested in `tests/release.spec.mjs`), `docs/PROD-APPROVAL-FLOW.md` |
 | Team setup scripts | `setup/1-Install-Tools.ps1`, `2-Create-Shared-Copy.ps1`, `3-Join-Project.ps1` |
 
 ## Data facts

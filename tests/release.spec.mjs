@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test, expect } from "@playwright/test";
-import { prodGateProblem, approverProblem, changesFor, buildRequest, stageRelease } from "../tools/lib/release.mjs";
+import { prodGateProblem, changesFor, buildRequest, stageRelease } from "../tools/lib/release.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const json = (...p) => JSON.parse(fs.readFileSync(path.join(ROOT, ...p), "utf8"));
@@ -14,7 +14,7 @@ const devManifest = json("dist", "dev", "manifest.json"), prodManifest = json("d
 
 const request = (over = {}) => buildRequest({
   id: "v9.9.9-abcd1234-20261012-153000", version: "9.9.9", commit: "abcd1234", submittedBy: "owner@moen.com",
-  submitted: "2026-10-12T15:30:00.000Z", approvers: ["approver@moen.com"], changes: "- Scorecard: one thing.\n- Home: <another> & more.",
+  submitted: "2026-10-12T15:30:00.000Z", changes: "- Scorecard: one thing.\n- Home: <another> & more.",
   folder: "/GPD Releases/v9.9.9-abcd1234-20261012-153000",
   dev: { cfg: devCfg, manifest: devManifest }, prod: { cfg: prodCfg, manifest: prodManifest }, ...over,
 });
@@ -29,13 +29,6 @@ test.describe("Send for approval", () => {
     expect(prodGateProblem({ ...ok, branch: "change/x" })).toMatch(/main branch/);
     expect(prodGateProblem({ ...ok, dirty: " M src/x.js" })).toMatch(/uncommitted/);
     expect(prodGateProblem({ ...ok, tags: ["v1.2.2"] })).toMatch(/not tagged v1\.2\.3/);
-  });
-
-  test("refuses to send until a real approver address is set", () => {
-    expect(approverProblem({})).toMatch(/releaseApprovers/);
-    expect(approverProblem({ releaseApprovers: ["CHANGE-ME@moen.com"] })).toMatch(/releaseApprovers/);
-    expect(approverProblem({ releaseApprovers: ["not an address"] })).toMatch(/releaseApprovers/);
-    expect(approverProblem({ releaseApprovers: ["approver@moen.com"] })).toBe("");
   });
 
   test("takes the changelog lines of exactly this version", () => {
@@ -64,10 +57,10 @@ test.describe("Send for approval", () => {
     expect(r.devHomeUrl).toBe(r.dev.files.find((f) => f.name === "Home.aspx").url);
   });
 
-  test("request carries the approval and email texts", () => {
-    const r = request({ approvers: ["approver@moen.com", "owner@moen.com"] });
-    expect(r.approvers).toBe("approver@moen.com;owner@moen.com");
-    expect(r.notify).toBe("owner@moen.com;approver@moen.com");
+  test("request carries the approval and email texts; the Approve button goes to whoever sent it", () => {
+    const r = request();
+    expect(r.approvers).toBe("owner@moen.com");
+    expect(r.notify).toBe("owner@moen.com");
     expect(r.approvalTitle).toBe("Release GPD Portfolio Hub v9.9.9 to Prod");
     expect(r.approvalDetails).toContain("- Scorecard: one thing.");
     for (const f of r.dev.files) expect(r.approvalDetails).toContain("(" + f.url + ")");

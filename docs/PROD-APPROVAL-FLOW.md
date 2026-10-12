@@ -1,6 +1,6 @@
 # One-click Prod release (approval flow)
 
-Once this is set up, a release to Prod takes one command from you and one click from the approver:
+Once the requester has OK'd the change on Dev, a release to Prod takes one command and one click, both yours:
 
 ```
  You (release owner)                      Power Automate flow "GPD - release to Prod"
@@ -10,16 +10,18 @@ Once this is set up, a release to Prod takes one command from you and one click 
                            ▼
                          custom scripts on for Dev, the 3 pages uploaded to Dev
                            ▼
- Approver (Priya) ◀───── Approve / Reject button, in Outlook and in Teams (Approvals)
+ You ◀────────────────── Approve / Reject button, in Outlook and in Teams (Approvals)
    │ Approve                                   │ Reject
    ▼                                           ▼
- custom scripts on for Prod                    email to you with the comment;
- the 3 pages uploaded to Prod:                 Prod is not touched
+ custom scripts on for Prod                    email to you; Prod is not touched
+ the 3 pages uploaded to Prod:
    missing ones added, existing ones replaced
  size of every page checked
  custom scripts off again for Prod
- email to you and the approver: "live on Prod"
+ email to you: "live on Prod"
 ```
+
+The Approve button goes to whoever ran `/send-for-approval`, which can only be a release owner (`releaseOwners` in config/prod.json). Approving is your last check, after a look at the release on Dev.
 
 The flow signs in with two accounts, once each, when you create its connections:
 
@@ -33,7 +35,6 @@ All the connectors used (OneDrive for Business, SharePoint, Approvals, Office 36
 - [ ] **IT/security agree** that the admin account may be used by a flow. If its admin role has to be activated each time (Privileged Identity Management), the flow can't use it: ask for a permanent SharePoint Administrator assignment, or a dedicated account that has one.
 - [ ] **Your account** can upload the pages to both libraries today (the rights you use to drag the files).
 - [ ] **OneDrive is syncing** on your PC. In File Explorer, open *OneDrive - Fortune Brands Innovations* and create a folder named **GPD Releases**.
-- [ ] **The approver's address** is in `config/prod.json`, `"releaseApprovers": ["name@moen.com"]`. Ask Claude to set it. `/send-for-approval` refuses to run until it's there.
 
 ## Build the flow (once, about 40 minutes)
 
@@ -132,7 +133,7 @@ In the **False** branch of **Dev size OK**, add:
 - **Item link:** fx `outputs('Release')?['devHomeUrl']`
 - **Item link description:** `Open it on Dev`
 
-The approver gets an email with Approve and Reject buttons, and the same request in Teams (Approvals). Either one works.
+You get an email with Approve and Reject buttons, and the same request in Teams (Approvals). Either one works.
 
 **3f. Approved?** Add a **Condition**, named **Approved**: fx `body('Ask_for_approval')?['outcome']`, then **is equal to**, then `Approve`.
 
@@ -174,13 +175,13 @@ Dev's custom scripts are left on for the rest of the day, so the team can still 
    - **Scripts on Dev**: its output body contains `"ErrorInfo":null`. If it shows an error, see the table below.
    - **Each Dev page**: every **Dev size OK** is True.
 3. Open the Dev pages from the approval email and check them.
-4. Let the approver click **Approve**, then check that the email "is live on Prod" arrives and the Prod pages open.
+4. Click **Approve**, then check that the email "is live on Prod" arrives and the Prod pages open.
 
 ## Every release after that
 
 1. `/approve-release change/<name>`: merges, versions, tags and shares the release (as before).
 2. `/send-for-approval`: runs the tests, builds Dev and Prod, and puts them in OneDrive. You can also use **Run Task**, then **Release: send for approval (release owner)**.
-3. The approver clicks **Approve**, and you get the "live on Prod" email. That's it.
+3. Click **Approve** in the email or in Teams, and you get the "live on Prod" email. That's it.
 
 You can delete the old `GPD Releases/v...` folders and `.json` files whenever you like. The flow only reads the one it was started for.
 

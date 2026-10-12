@@ -18,14 +18,6 @@ export function prodGateProblem({ cfg, version, branch, dirty, tags, me }) {
   return "";
 }
 
-/* The approvers must be real addresses before anything is sent. */
-export function approverProblem(cfg) {
-  const list = cfg.releaseApprovers || [];
-  if (!list.length || list.some((a) => /CHANGE-ME/i.test(a) || !/^[^@\s;]+@[^@\s;]+\.[^@\s;]+$/.test(a)))
-    return 'Put the approver\'s email address in "releaseApprovers" in config/prod.json, for example ["name@moen.com"].';
-  return "";
-}
-
 /* The bullet lines under "## v<version>" in CHANGELOG.md, or "" if there is no entry. */
 export function changesFor(changelog, version) {
   const out = [];
@@ -56,16 +48,17 @@ function side(env, { cfg, manifest }, folder) {
   };
 }
 
-/* The request file. `folder` is the OneDrive path the flow reads the pages from, e.g. "/GPD Releases/v1.8.0-...". */
-export function buildRequest({ id, version, commit, submittedBy, submitted, approvers, changes, folder, dev, prod }) {
+/* The request file. `folder` is the OneDrive path the flow reads the pages from, e.g. "/GPD Releases/v1.8.0-...".
+   The Approve button and the emails go to the release owner who sent it (submittedBy). */
+export function buildRequest({ id, version, commit, submittedBy, submitted, changes, folder, dev, prod }) {
   const d = side("dev", dev, folder), p = side("prod", prod, folder);
   const app = "GPD Portfolio Hub v" + version;
   const links = (s) => s.files.map((f) => '<li><a href="' + esc(f.url) + '">' + esc(f.title) + "</a></li>").join("");
   const bullets = changes ? "<ul>" + changes.split("\n").map((l) => "<li>" + esc(l.replace(/^[-*]\s*/, "")) + "</li>").join("") + "</ul>" : "";
   return {
     id, app: "GPD Portfolio Hub", version, commit, submittedBy, submitted,
-    approvers: approvers.join(";"),
-    notify: [submittedBy, ...approvers.filter((a) => a !== submittedBy)].join(";"),
+    approvers: submittedBy,
+    notify: submittedBy,
     approvalTitle: "Release " + app + " to Prod",
     approvalDetails: [
       app + " is on the Dev site now. Have a look, then choose **Approve** to publish it to Prod, or **Reject** with a comment.",

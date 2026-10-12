@@ -11,7 +11,7 @@ Prepare a release from the approved change branch: $ARGUMENTS
 5. Add a CHANGELOG.md entry at the top for the new version (today's date, plain-English bullets of what users will notice).
 6. `git commit -am "Release v<version>"` and `git tag -a v<version> -m "Release v<version>"`.
 7. If there is an `origin`, run `git push origin main --follow-tags`.
-8. Tell the release owner the next step: /send-for-approval. The release flow puts this exact release on Dev, sends the approver an Approve button (email and Teams), and on Approve publishes it to Prod by itself, custom scripts included (docs/PROD-APPROVAL-FLOW.md).
+8. Tell the release owner the next step: /send-for-approval. The release flow puts this exact release on Dev, sends them an Approve button (email and Teams), and on Approve publishes it to Prod by itself, custom scripts included (docs/PROD-APPROVAL-FLOW.md).
    If the flow isn't set up yet, or isn't working, use the manual route, which they run themselves:
    a) /package-dev, then drag all three page files into the Dev library. This puts this exact release on Dev; take a quick look;
    b) /package-prod, then drag all three page files into the Prod library (custom scripts must be on that day).
