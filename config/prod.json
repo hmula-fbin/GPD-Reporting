@@ -1,5 +1,5 @@
 {
-  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod deploys need: the main branch, a clean tree, a version tag, the SAME commit already on the promoteFrom site (dev), a release owner, and typed confirmation. dataQuality true = the Data Quality page is released here (it used to show Coming soon on Home and Soon in the menu before this). upcomingLaunches false = the Upcoming Launches page is not released here yet (Coming soon on Home and in the menu).",
+  "_note": "Production site. Replace CHANGE-ME-gpd with the real site name. Prod releases need the main branch, a clean tree and a version tag, and anyone on the team may send one; it goes live only when the approver clicks Approve in the release flow (docs/PROD-APPROVAL-FLOW.md). dataQuality true = the Data Quality page is released here (it used to show Coming soon on Home and Soon in the menu before this). upcomingLaunches false = the Upcoming Launches page is not released here yet (Coming soon on Home and in the menu).",
   "env": "prod",
   "label": "Production",
   "sitePath": "/sites/GPDReporting",
@@ -15,8 +15,5 @@
   "reloadMinutes": 60,
   "reviewMonths": 30,
   "pnpClientId": "",
-  "promoteFrom": "dev",
-  "releaseOwners": [
-    "harinath.mula@moen.com"
-  ]
+  "promoteFrom": "dev"
 }

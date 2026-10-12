@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   1. Checks the environment config (config/<env>.json).
-  2. Prod only: you must be a release owner, on the main branch, with a clean tree, HEAD tagged
+  2. Prod only: you must be on the main branch, with a clean tree, HEAD tagged
      v<version>, and the SAME commit already live on the Dev site (config "promoteFrom").
      Then you type the confirmation phrase.
   3. Runs the tests (unless -SkipTests) and builds dist/<env>/ (unless -SkipBuild).
@@ -86,8 +86,6 @@ if ($Env -ne 'prod' -and $dirty -and -not $Rollback) {
 }
 if ($Env -eq 'prod' -and -not $Rollback) {
   Step 'Production checks'
-  $me = (git config user.email)
-  if ($cfg.releaseOwners -and ($cfg.releaseOwners -notcontains $me)) { Fail "Only release owners can deploy to Prod ($($cfg.releaseOwners -join ', ')). You are '$me'." }
   $branch = (git rev-parse --abbrev-ref HEAD)
   if ($branch -ne 'main') { Fail "Prod deploys come from the main branch. You are on '$branch'. Run /approve-release first." }
   if ($dirty) { Fail "Uncommitted changes. Commit or undo them first:`n$dirty" }
@@ -101,7 +99,7 @@ if ($Env -eq 'prod' -and -not $Rollback) {
   if ($live.Commit -ne $commit -or $live.Version -ne $version) {
     Fail "The $from site has v$($live.Version) ($($live.Commit)), but you are releasing v$version ($commit). Deploy this exact version to $from, test it, then come back."
   }
-  Write-Host "  release owner, main, clean tree, tag v$version, same commit live on $from - OK" -ForegroundColor Green
+  Write-Host "  main, clean tree, tag v$version, same commit live on $from - OK" -ForegroundColor Green
   $answer = Read-Host "Type DEPLOY PROD to publish v$version to $siteUrl"
   if ($answer -cne 'DEPLOY PROD') { Fail 'Not confirmed.' }
 }

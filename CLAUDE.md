@@ -6,21 +6,21 @@ Each page reads its data live in the browser through the SharePoint REST API, as
 ## Who you're working with
 Most team members are new to VS Code and git. Explain git steps in one plain sentence each. Prefer the team commands:
 - `/get-latest`, `/start-change`, `/change`, `/share-change` and `/package-dev`, for everyone;
-- `/approve-release`, `/package-prod` and `/release-check`, for the release owner.
+- `/approve-release`, `/package-prod` and `/release-check`, for releasing. Anyone on the team can release.
 
-Uploading to SharePoint is manual for now: `tools/package.mjs` builds the pages and the user drags them into the library. Custom scripts must be on for the site that day, because SharePoint resets them every 24 hours. `/deploy-dev` (PnP) is only for when `pnpClientId` is set.
+Prod releases go through the release flow (docs/PROD-APPROVAL-FLOW.md). `/approve-release` ends with the `/package-prod` steps: build QA and Prod, stage them in the sender's OneDrive folder GPD Releases (a shortcut to Prod Release Files/GPD Releases, so OneDrive uploads them; the connector's own copies are refused), check with the WorkIQ-SharePoint connector that they arrived, then add the release to the GPD Releases list. The ids are in .claude/commands/package-prod.md. The flow then switches custom scripts on with an admin connection, puts the pages on QA and in Prod Release Files, and emails the people in the Approvers list (Prod site). Never edit the Approvers list. On Approve, it copies the pages to Report Pages (replacing) and moves them to Prod Release Backup with the date; on Reject, it emails the sender the comments. Never ask for or handle the admin password. Dev uploads are manual: `tools/package.mjs --env dev` builds the pages and the user drags them into the library. Custom scripts must be on for the site that day, because SharePoint resets them every 24 hours. `/deploy-dev` (PnP) is only for when `pnpClientId` is set.
 
 The full process is in docs/TEAM-GUIDE.md.
 
 ## Workflow
-- **Flow:** change branch (`change/<name>`), then Dev site for testing, then the release owner merges to `main`, tags it, deploys main to Dev, then Prod.
+- **Flow:** change branch (`change/<name>`), then Dev site for testing, then anyone on the team merges to `main` (`/approve-release`) and tags it, then the release flow: QA, then Prod when the approver clicks Approve.
 - Never commit change work directly on `main`. Only `/approve-release` merges into main.
 - The shared remote (`origin`) is a bare repo in a OneDrive folder. It will later move to GitHub. Never force-push, never `reset --hard`, never delete someone else's branch.
 - Edit only `src/` and `config/`. `dist/` is generated; `src/vendor/` is third-party (don't edit it).
 - Build: `node build/build.mjs --env dev` (or `--env all`). Preview: `npm run preview` (fake SharePoint plus synthetic data).
 - Test: `npm test` (Playwright, desktop + mobile). Every change must leave the tests green.
 - A new requirement gets a test in `tests/`.
-- **Never run a prod deploy.** The release owner runs it from a VS Code task. Don't read `data/`, which holds real extracts.
+- **Never run a prod deploy.** Prod changes only through the release flow, when the approver clicks Approve. Don't read `data/`, which holds real extracts.
 
 ## House rules (business requirements, all covered by tests)
 1. **Never show where the data comes from.** No file name, "SharePoint", "workbook", network drive or library name in visible text. "Excel" appears only as the download-button label. `FORBIDDEN` in tests/helpers.mjs enforces this.
@@ -60,6 +60,8 @@ The full process is in docs/TEAM-GUIDE.md.
 | Local preview server | `tools/serve.mjs` |
 | Synthetic test data | `tools/make-fixture.mjs` -> `tests/fixtures/pipeline-fixture.csv`; `tools/make-dq-fixture.mjs` -> `tests/fixtures/dq-*-fixture.csv` (one project per rule) |
 | Deploy | `deploy/Deploy-Portfolio.ps1` (PnP.PowerShell). Prod checks the build stamp live on Dev |
+| Prod release flow: staging a release, and how to build the flow | `tools/package.mjs --env prod`, `tools/lib/release.mjs` (tested in `tests/release.spec.mjs`), `docs/PROD-APPROVAL-FLOW.md` |
+| Power Automate import packages for the flows (`npm run flows` -> `dist/flows/*.zip`) | `tools/lib/release-flows.mjs` (the flows), `tools/lib/flow-package.mjs`, `tools/lib/zip.mjs` (tested in `tests/flow-package.spec.mjs`) |
 | Team setup scripts | `setup/1-Install-Tools.ps1`, `2-Create-Shared-Copy.ps1`, `3-Join-Project.ps1` |
 
 ## Data facts

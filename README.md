@@ -15,7 +15,7 @@ Both pages read the pipeline workbook live from SharePoint as the person viewing
 
 ## Start here
 
-**New to VS Code or joining the team? Follow [docs/TEAM-GUIDE.md](docs/TEAM-GUIDE.md).** It covers setup for the release owner and for team members, making a change with Claude, testing on Dev, and releasing to Prod.
+**New to VS Code or joining the team? Follow [docs/TEAM-GUIDE.md](docs/TEAM-GUIDE.md).** It covers setup for the first person and for team members, making a change with Claude, testing on Dev, and releasing to Prod.
 
 Quick reference:
 
@@ -27,8 +27,8 @@ Quick reference:
 | See it on my PC | Task **Preview (dev, fixture data)**, then open http://localhost:5173 |
 | Save and share it | `/share-change` |
 | Put it on Dev for testing | `/package-dev`, then drag the two `.aspx` files into the Dev library |
-| (Release owner) approve it | `/approve-release change/<name>` |
-| (Release owner) release to Prod | `/package-dev` and upload, then `/package-prod` and drag into the Prod library |
+| Approve it (anyone) | `/approve-release change/<name>` |
+| Release to Prod (anyone) | Included in `/approve-release`: it goes to QA, then live when the approver clicks Approve ([docs/PROD-APPROVAL-FLOW.md](docs/PROD-APPROVAL-FLOW.md)). Re-send with `/package-prod` |
 
 ## Layout
 

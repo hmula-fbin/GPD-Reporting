@@ -13,7 +13,10 @@
       "Bash(git branch:*)",
       "Bash(git switch:*)",
       "Bash(git pull origin main)",
-      "Bash(node tools/package.mjs --env dev:*)"
+      "Bash(node tools/package.mjs --env dev:*)",
+      "mcp__claude_ai_WorkIQ-SharePoint__getFolderChildren",
+      "mcp__claude_ai_WorkIQ-SharePoint__createListItem",
+      "mcp__claude_ai_WorkIQ-SharePoint__listListItems"
     ],
     "ask": [
       "Bash(git push:*)",
