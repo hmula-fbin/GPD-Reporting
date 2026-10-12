@@ -8,7 +8,9 @@
 
 /* Column names in the project file. A list means "the first of these that exists". */
 const LCOLS = {
-  name: "ProjectName", n: "Project Number", desc: "ProjectDescription", pm: "ProjectOwnerName",
+  name: "ProjectName", n: "Project Number", pm: "ProjectOwnerName",
+  /* Project Description shows the Project Scope Statement (ProjectDescription is empty in the extract), or the description when a project has no scope statement */
+  scope: "Project Scope Statement", desc: "ProjectDescription",
   d: ["Ship-Trans Date", "Ship/Trans Date", "Ship Trans Date"],
   type: ["Stage Gate Project Type", "ProjectType"], stage: ["CurrentStage", "StageName"], brand: "Brand",
   ch: ["DistributionChannel", "Distribution Channel"], cust: ["Customer", "Primary Customer"],
@@ -88,11 +90,13 @@ function parseProjects(buf){
     if (!name) continue;
     const p = {};
     Object.keys(LCOLS).forEach(k => { p[k] = col[k] === undefined ? "" : (k === "d" ? dateKey(g[col.d]) : nk(g[col[k]]).replace(/\.0$/, "")); });
-    p.stage = plain(p.stage); p.ph = plain(p.ph);
+    p.desc = p.scope || p.desc; p.stage = plain(p.stage); p.ph = plain(p.ph);
     if (p.d) p.ml = monthOf(p.d);
     P.push(p);
   }
-  return {P, missing};
+  /* the description column needs only one of its two sources */
+  const both = missing.indexOf("scope") > -1 && missing.indexOf("desc") > -1;
+  return {P, missing: missing.filter(k => k !== "scope" && (k !== "desc" || both))};
 }
 
 /* ---------- the window: today to six months from today ---------- */
@@ -322,7 +326,7 @@ async function fetchFile(file){
   if (info && info.ok){ try{ modified = (await info.json()).TimeLastModified || ""; }catch(e){} }
   return {buf: await bin.arrayBuffer(), modified};
 }
-const NAMES = {d:"Ship-Trans Date", n:"Project Number", desc:"Project Description", pm:"Project Owner", type:"Project Type", stage:"Current Stage",
+const NAMES = {d:"Ship-Trans Date", n:"Project Number", desc:"Project Scope Statement", pm:"Project Owner", type:"Project Type", stage:"Current Stage",
   brand:"Brand", ch:"Distribution Channel", cust:"Customer", sp:"Sponsor Organization", ex:"Executing Organization", sb:"Strategic Bucket",
   st:"Project Status", room:"Room", mpm:"Mktg Product Manager", ph:"Phase"};
 function warn(){
