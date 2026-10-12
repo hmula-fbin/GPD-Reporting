@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.9.0 - 2026-10-12
+- Upcoming Launches is now in Production: projects shipping in the next six months, linked from Home and the menu (it showed "Coming soon" before). The page itself is the same one tested on Dev.
+
 ## v1.8.2 - 2026-10-12
 - No change to the pages. New release process: after /approve-release, the release goes to QA and the approvers get an Approve/Reject request by email and in Teams. Prod is updated only when one of them approves; on Reject the sender gets their comments by email.
 - Anyone on the team can now release (no single release owner). Approvers are the people in the Approvers list on the Prod site.
