@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.10.0 - 2026-10-15
+- Data Quality: click a project name to open that project in OnePlan, in a new tab, to fix the data behind its issues. A line above the project table says so.
+
 ## v1.9.0 - 2026-10-12
 - Upcoming Launches is now in Production: projects shipping in the next six months, linked from Home and the menu (it showed "Coming soon" before). The page itself is the same one tested on Dev.
 
