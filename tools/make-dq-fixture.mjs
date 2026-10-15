@@ -103,7 +103,7 @@ function addProject(name, kind, over, live, into = rows) {
   set("Contribution Margin Dollars_New", b.cmNew); set("Incremental Contribution Margin Dollars", b.cmInc);
   set("Contribution Margin Dollars_Cann", b.cmCann); set("Incremental Annual Contribution Margin Dollars", b.cmAnn);
   set("Percent Contribution Margin_New", b.pctNew); set("Percent Contribution Margin_Cann", b.pctCann); set("Project Life", b.life);
-  set("Total Investment", Math.round(5e4 + rnd() * 2e6)); set("ProjectUID", "P-" + id);
+  set("Total Investment", Math.round(5e4 + rnd() * 2e6)); set("ProjectUID", "{" + ("0000000" + id.toString(16)).slice(-8).toUpperCase() + "-AB12-4CD3-9EF4-0123456789AB}");
   set("DC First Ship 2 Date", new Date(2027, id % 12, 5)); set("DC First Ship 1 Date", new Date(2026, id % 12, 20));
   set("NPV", id * 1000); set("Project Management Flag", ["Green", "Yellow", "Red"][id % 3]);
   /* Upcoming Launches: Ship-Trans Dates spread one or two a month over 2026-2030, so any six-month window holds some */

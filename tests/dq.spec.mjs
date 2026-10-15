@@ -121,6 +121,16 @@ test("View issues opens the full text for that project", async ({ page }) => {
   await expect(page.locator("#issDlg")).toBeHidden();
 });
 
+test("a project name links to that project in OnePlan (ProjectUID without braces, lower case), opening in a new tab", async ({ page }) => {
+  await open(page, DQ);
+  await page.fill("#fQ", "dq u1 reconciliation");
+  await expect(page.locator("#gridBody tr[data-i]")).toHaveCount(1);
+  const a = page.locator("#gridBody tr[data-i] td").first().locator("a");
+  await expect(a).toContainText("DQ U1 Reconciliation");
+  await expect(a).toHaveAttribute("target", "_blank");
+  await expect(a).toHaveAttribute("href", /^https:\/\/my\.oneplan\.ai\?ConfigId=faa4aa23-cc59-44cd-a2f8-3411417f6b03&AppId=00000000-0000-0000-0000-000000000001&PlanId=[0-9a-f]{8}-ab12-4cd3-9ef4-0123456789ab$/);
+});
+
 test("KPI figures use one colour (no red / amber / green)", async ({ page }) => {
   await open(page, DQ);
   const cols = await page.evaluate(() => ({

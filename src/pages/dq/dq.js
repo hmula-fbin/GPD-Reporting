@@ -16,8 +16,12 @@ const PROJECT_COLS = {
   ns: "Total Net Sales", nsInc: "Incremental Net Sales", cs: "Total Cost Savings",
   cmNew: "Contribution Margin Dollars_New", cmInc: "Incremental Contribution Margin Dollars",
   cmCann: "Contribution Margin Dollars_Cann", cmAnn: "Incremental Annual Contribution Margin Dollars",
-  pctNew: "Percent Contribution Margin_New", pctCann: "Percent Contribution Margin_Cann", life: "Project Life"
+  pctNew: "Percent Contribution Margin_New", pctCann: "Percent Contribution Margin_Cann", life: "Project Life",
+  uid: "ProjectUID"
 };
+/* Clicking a project name opens the project in OnePlan, in a new tab: this link plus the project's ProjectUID,
+   without its {braces} (or %7B / %7D) and in lower case. */
+const ONEPLAN_URL = "https://my.oneplan.ai?ConfigId=faa4aa23-cc59-44cd-a2f8-3411417f6b03&AppId=00000000-0000-0000-0000-000000000001&PlanId=";
 const NUMERIC = ["ns", "nsInc", "cs", "cmNew", "cmInc", "cmCann", "cmAnn", "pctNew", "pctCann", "life"];
 /* Column names in the resource file. */
 const RESOURCE_COLS = { uid: "ResourceUID", name: "ResourceName", active: "ResourceIsActive" };
@@ -462,7 +466,11 @@ function cellHtml(p, c, ci){
     case "ns": case "cs": case "nsInc": case "cmInc": case "cmAnn": case "cmNew": case "cmCann": txt = money(p[c.k]); break;
     case "pctNew": case "pctCann": txt = pctv(p[c.k]); break;
     case "life": txt = p.life === null ? "" : fmtN(p.life); break;
-    case "name": txt = p.name; if (!title) title = p.name; break;
+    case "name":
+      txt = p.name; if (!title) title = p.name;
+      const plan = p.uid.replace(/%7[bd]|[{}\s]/gi, "").toLowerCase();
+      if (plan) inner = '<a class="lnk" href="' + esc(ONEPLAN_URL + encodeURIComponent(plan)) + '" target="_blank" rel="noopener">' + esc(p.name) + '</a>';
+      break;
     default: txt = p[c.k] || "";
   }
   if (s !== undefined && inner === null && txt === ""){ cls.push("blank"); txt = "missing"; }
