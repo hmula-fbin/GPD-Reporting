@@ -818,6 +818,7 @@ async function reloadData(){
     const asAt = pr.modified ? new Date(pr.modified) : S.loadedAt;
     $("subline").textContent = "Project & resource data quality checks · Data as at " + asAt.toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric"});
     $("subline").title = "Last refreshed " + when(S.loadedAt);
+    $("oneplanTip").hidden = S.missing.indexOf("uid") > -1;
     $("emptyState").hidden = true; $("tabsrow").hidden = false;
     showTab();
     warn(); renderHead(); renderHlKey(); refresh();

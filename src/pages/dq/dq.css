@@ -12,6 +12,8 @@
 .dqcard{background:var(--panel);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow)}
 .dqhead{margin:16px 0 9px}
 .dqhead .act{display:flex;gap:6px;align-items:center}
+.dqtip{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);margin:0 0 10px;line-height:1.45}
+.dqtip .i{flex:none;width:14px;height:14px;color:var(--kpi)}
 .dqfoot{font-size:11.5px;color:var(--ink-3);max-width:110ch;margin:16px 0 0;line-height:1.55}
 
 /* ---- KPI bar: one card, one colour ---- */

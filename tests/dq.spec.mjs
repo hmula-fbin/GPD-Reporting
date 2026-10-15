@@ -129,6 +129,8 @@ test("a project name links to that project in OnePlan (ProjectUID without braces
   await expect(a).toContainText("DQ U1 Reconciliation");
   await expect(a).toHaveAttribute("target", "_blank");
   await expect(a).toHaveAttribute("href", /^https:\/\/my\.oneplan\.ai\?ConfigId=faa4aa23-cc59-44cd-a2f8-3411417f6b03&AppId=00000000-0000-0000-0000-000000000001&PlanId=[0-9a-f]{8}-ab12-4cd3-9ef4-0123456789ab$/);
+  await expect(page.locator("#oneplanTip")).toBeVisible();
+  await expect(page.locator("#oneplanTip")).toContainText("Click a project name to open that project in OnePlan");
 });
 
 test("KPI figures use one colour (no red / amber / green)", async ({ page }) => {
